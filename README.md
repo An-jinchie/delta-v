@@ -4,7 +4,8 @@
 
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/)
 [![Streamlit](https://img.shields.io/badge/streamlit-1.35+-red.svg)](https://streamlit.io/)
-[![Tests](https://img.shields.io/badge/tests-131%20passing-brightgreen.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/tests-142%20passing-brightgreen.svg)](#running-tests)
+[![Live Demo](https://img.shields.io/badge/live-demo-red.svg)](https://delta-v-ksn33avrrgai9gbnidlstb.streamlit.app/)
 
 ---
 
@@ -120,6 +121,8 @@ python train.py
 # 3. Launch
 streamlit run app.py
 ```
+
+**Live demo:** [https://delta-v-ksn33avrrgai9gbnidlstb.streamlit.app/](https://delta-v-ksn33avrrgai9gbnidlstb.streamlit.app/)
 
 The app runs fully without any API keys or network access. The IBM Granite integration falls back to template text; TLE data falls back to the committed synthetic snapshot.
 
