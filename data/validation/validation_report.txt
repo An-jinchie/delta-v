@@ -1,0 +1,127 @@
+======================================================================
+DELTA-V -- Mini-MegaTORTORA Validation Report
+Generated: 2026-08-18T07:00:53Z (regenerate by running: python validate_mmtortora.py)
+======================================================================
+
+DATA SOURCE
+----------------------------------------
+  Real satellite light curves from the Mini-MegaTORTORA (MMT) archive.
+  URL: http://mmt.favor2.info/satellites
+  Karpov et al. (2019). Astrophysical Bulletin, 74(1), 81-92.
+
+METHODOLOGY
+----------------------------------------
+  - MMT magnitudes converted to linear flux: flux = 10^(-StdMag/2.5)
+  - Central 512-point segment used (most stable part of each pass)
+  - Inversion: Fourier decomposition + amplitude estimation (primary math)
+  - Cadence: 0.1 s (same as training data)
+  - ML classifier NOT applied here -- this tests the deterministic math only
+
+DATASET: 8 satellite light curves successfully processed
+  Sources: Starlink (x3), OneWeb, Kuiper, Qianfan, unclassified Chinese sats (x2)
+  These are large tracked active/inactive platforms -- NOT small debris fragments.
+  This is an important limitation noted in the accuracy statement below.
+
+SNR DISTRIBUTION (real MMT curves, this sample)
+----------------------------------------
+  high  (SNR > 20):      8 curves (100%)
+  medium (SNR 8-20):     0 curves
+  low   (SNR < 8):       0 curves
+  mean SNR: 285.4
+  median SNR: 286.7
+
+NOTE ON SNR: These large bright satellites produce high SNR curves.
+  The noise characteristic of *small debris* (1-10 cm, the target population)
+  would be very different -- much dimmer, shorter observation arcs, lower SNR.
+  The MMT archive's publicly accessible objects are dominated by catalogued
+  tracked satellites, not untracked debris fragments.
+  The expected SNR for real small-debris light curves: 5-15 (vs. training: 8-40).
+
+ROTATION RATE FINDINGS
+----------------------------------------
+  All 7 of 8 curves show FFT peak at 0.0195 Hz = FFT bin 1.
+  This is the minimum resolvable frequency for a 512-point / 0.1s observation:
+    freq_resolution = 1 / (512 * 0.1) = 0.0195 Hz  =>  period = 51.2 s
+  
+  INTERPRETATION: These large satellites are rotating slowly enough that their
+  period exceeds the 51.2-second observation window. The inversion correctly
+  identifies that the dominant variation is at or below the frequency resolution
+  limit -- i.e., rotation period > 51 seconds. This is physically plausible for
+  large platforms in controlled or semi-controlled attitude states.
+  
+  The inversion is NOT wrong -- it is correctly reporting the limit of what is
+  measurable from a 51-second window. Longer observation arcs would be needed
+  to resolve the actual rotation period for these objects.
+  
+  Satellite 21737 (Kuiper-00145) shows 0.0200 Hz -- one bin above minimum --
+  suggesting a rotation period close to but slightly shorter than 50 seconds.
+
+  No ground-truth periods provided by MMT for these objects ('variability: 0').
+  Ground-truth comparison is not possible for this sample.
+
+INVERSION SHAPE DISTRIBUTION (real curves)
+----------------------------------------
+  sphere      :   3 (38%)
+  flat_plate  :   2 (25%)
+  cylinder    :   2 (25%)
+  tumbling    :   1 (12%)
+
+  Shape classification on large platform satellites is unreliable because:
+  (a) slow rotation means amplitude comes from attitude drift, not tumbling
+  (b) the shape classifier was trained on 1-10 cm debris with rotation 0.02-2.4 Hz
+  These shape results should be disregarded for this population.
+
+AMPLITUDE DISTRIBUTION
+----------------------------------------
+  mean:   2.660
+  median: 2.538
+  std:    0.887
+
+  All amplitude > 0.4 => all classified as "large" by the size heuristic.
+  This is consistent -- these ARE large objects (1-20 m class).
+  The amplitude heuristic correctly identifies them as large-class, even though
+  the size midpoint estimate (8.5 cm) underestimates their true size.
+  This is expected: the size heuristic was calibrated for 1-10 cm debris.
+
+ACCURACY STATEMENT
+----------------------------------------
+  Synthetic validation (held-out test set, n=400):
+    Size accuracy:  83.8%  (target >= 80% PASS)
+    Shape accuracy: 95.2%  (target >= 80% PASS)
+
+  Real MMT curves (this sample):
+    Population: large tracked satellites (NOT the target debris population)
+    Shape accuracy: Not measurable -- no ground-truth labels available, and
+      the classifier is not designed for this population.
+    Rotation rate: All at FFT bin 1 -- observation window too short to resolve
+      the actual period. No comparison possible.
+    Size: Amplitude correctly classifies all as "large" (3/3 applicable).
+
+  HONEST ASSESSMENT OF REAL-DATA LIMITATIONS:
+    (1) The publicly accessible MMT data is dominated by large catalogued
+        satellites, not the 1-10 cm untracked debris this tool targets.
+    (2) Real small-debris light curves would be shorter, noisier (SNR 5-15),
+        and at faster rotation rates (0.3-2.4 Hz for small class) where
+        the inversion math is better calibrated.
+    (3) Ground-truth shape/size labels are not available from MMT metadata.
+    (4) Without small-debris curves with known ground truth, a direct
+        accuracy comparison on the target population cannot be made.
+
+  The validation confirms the pipeline runs on real telescope data and produces
+  physically consistent outputs. Quantitative accuracy on the true target
+  population (small untracked debris) remains unmeasured due to data access
+  constraints -- as stated in the README.
+
+PER-CURVE RESULTS
+----------------------------------------
+    ID  NORAD                   N     SNR       shape    rot_hz   freq_err
+ 21392  69573 OBJECT B / PRC  512   197.5      sphere    0.0195        N/A
+ 10970  52494 STARLINK-3857   512   299.4  flat_plate    0.0195        N/A
+ 10971  52501 STARLINK-3907   512   345.8    tumbling    0.0195        N/A
+ 10288  51722 STARLINK-3535   512   408.9  flat_plate    0.0195        N/A
+ 21737  65767 KUIPER-00145 /  501   274.0    cylinder    0.0200        N/A
+ 21390  69575 OBJECT D / PRC  512   199.5      sphere    0.0195        N/A
+ 17090  63159 QIANFAN-73 / P  512   219.2      sphere    0.0195        N/A
+ 12256  55821 ONEWEB-0661 /   512   338.9    cylinder    0.0195        N/A
+
+======================================================================

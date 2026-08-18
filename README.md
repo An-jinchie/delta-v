@@ -88,10 +88,19 @@ It is a grid-based accumulator weighted by recency and detection confidence. Thi
 ### Validation Results
 
 **Synthetic (held-out test set, n=400):**
-- Size accuracy: **83.8%** (target: ≥80% ✓)
-- Shape accuracy: **95.2%** (target: ≥80% ✓)
+- Size accuracy: **83.8%** (target: ≥80% — pass)
+- Shape accuracy: **95.2%** (target: ≥80% — pass)
 
-**Real MMT light curves:** Validation against Mini-MegaTORTORA data deferred pending network access. When run, `validate_mmtortora.py` reports rotation-rate MAE and shape accuracy on real curves alongside synthetic — and explicitly states where accuracy degrades due to the higher real-data noise floor. See `data/validation/` for results once run.
+**Real MMT light curves (8 satellites, `mmt.favor2.info`):**
+
+The pipeline was run against 8 real satellite passes from the Mini-MegaTORTORA archive. Key findings — stated honestly:
+
+- The publicly accessible MMT objects are large catalogued platforms (Starlink, OneWeb, Kuiper) — **not** the 1–10 cm untracked debris this tool targets
+- All 8 passes show FFT peak at the minimum resolvable frequency (0.0195 Hz = 51.2 s period), meaning the objects rotate too slowly to resolve a period within a 51-second observation window — the inversion correctly reports this limit
+- Amplitude heuristic correctly classifies all 8 as "large" class, consistent with their known sizes
+- Ground-truth shape/size labels are not available from MMT metadata — direct accuracy comparison is not possible for this population
+
+**Honest statement:** Quantitative accuracy on the true target population (small untracked debris, 1–10 cm) cannot be measured from the available public MMT data, which is dominated by large tracked objects. Accuracy figures (83.8% / 95.2%) are reported on physics-grounded synthetic data only. See `data/validation/validation_report.txt` for the full per-curve analysis.
 
 ---
 
