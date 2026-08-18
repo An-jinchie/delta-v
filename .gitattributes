@@ -1,0 +1,10 @@
+# Normalise line endings to LF in the repository (cross-platform safe for Streamlit Cloud)
+* text=auto eol=lf
+*.py text eol=lf
+*.toml text eol=lf
+*.txt text eol=lf
+*.md text eol=lf
+*.csv text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf

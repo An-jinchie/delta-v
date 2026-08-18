@@ -1,0 +1,2 @@
+# Development-only dependencies — not installed on Streamlit Cloud
+pytest>=8.0.0

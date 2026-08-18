@@ -1,0 +1,30 @@
+# Delta-V .gitignore
+
+# Environment & secrets
+.env
+.streamlit/secrets.toml
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Generated data (large, reproducible — not committed)
+data/cache/
+data/synthetic/
+data/models/
+
+# Validation curves ARE committed (data/validation/ is intentionally NOT ignored)
+
+# OS
+.DS_Store
+Thumbs.db
