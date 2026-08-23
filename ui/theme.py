@@ -54,14 +54,24 @@ SYM_INJECT    = "⊳"   # forward feed       — inject detections
 SYM_CLEAR     = "⊘"   # null / clear
 
 # ── Plotly layout defaults ────────────────────────────────────────────────────
+# Base layout applied to every chart via **PLOTLY_LAYOUT.
+# Only contains properties that are safe to unpack alongside any per-chart overrides.
+# - xaxis/yaxis use _shorthand_ keys so they merge cleanly with xaxis_title etc.
+# - legend is NOT included here; each chart passes its own legend= kwarg.
 PLOTLY_LAYOUT = dict(
-    plot_bgcolor  = BG_PANEL,
-    paper_bgcolor = BG_MAIN,
-    font          = dict(color=TEXT_MAIN, family="JetBrains Mono, Consolas, monospace"),
-    xaxis         = dict(gridcolor=BORDER, zerolinecolor=BORDER, color=TEXT_MAIN),
-    yaxis         = dict(gridcolor=BORDER, zerolinecolor=BORDER, color=TEXT_MAIN),
-    legend        = dict(bgcolor="rgba(0,0,0,0)", bordercolor=BORDER, font=dict(color=TEXT_MAIN)),
+    plot_bgcolor         = BG_PANEL,
+    paper_bgcolor        = BG_MAIN,
+    font                 = dict(color=TEXT_MAIN, family="JetBrains Mono, Consolas, monospace"),
+    xaxis_gridcolor      = BORDER,
+    xaxis_zerolinecolor  = BORDER,
+    xaxis_color          = TEXT_MAIN,
+    yaxis_gridcolor      = BORDER,
+    yaxis_zerolinecolor  = BORDER,
+    yaxis_color          = TEXT_MAIN,
 )
+
+# Legend defaults — merge into per-chart legend= kwarg when needed
+PLOTLY_LEGEND = dict(bgcolor="rgba(0,0,0,0)", bordercolor=BORDER, font=dict(color=TEXT_MAIN))
 
 
 def apply_theme() -> None:

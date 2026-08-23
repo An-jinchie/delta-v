@@ -18,7 +18,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from ai.granite import explain_characterization, granite_status
-from ui.theme import (apply_theme, PLOTLY_LAYOUT, ACCENT_CYAN, ACCENT_RED,
+from ui.theme import (apply_theme, PLOTLY_LAYOUT, PLOTLY_LEGEND, ACCENT_CYAN, ACCENT_RED,
                       BG_PANEL, BG_MAIN, BORDER, TEXT_MAIN,
                       SYM_TARGET, SYM_SIGNAL, SYM_INSPECT, SYM_ORBIT, SYM_ONLINE, SYM_OFFLINE)
 from ui.starfield import inject_starfield
@@ -213,6 +213,7 @@ with col_preview:
         yaxis_title="Normalised brightness",
         height=280,
         margin=dict(l=40, r=20, t=40, b=40),
+        legend=PLOTLY_LEGEND,
     )
     st.plotly_chart(fig, use_container_width=True)
     st.caption("⚠️ SYNTHETIC DATA — physics-based generator. Not real telescope observations.")
@@ -289,6 +290,7 @@ fig_fft.update_layout(
     yaxis_title="|FFT| amplitude",
     height=260,
     margin=dict(l=40, r=20, t=40, b=40),
+    legend=PLOTLY_LEGEND,
 )
 st.plotly_chart(fig_fft, use_container_width=True)
 

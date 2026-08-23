@@ -27,7 +27,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from ai.granite import write_situation_report, granite_status
-from ui.theme import (apply_theme, PLOTLY_LAYOUT, ACCENT_CYAN, ACCENT_AMBER, ACCENT_RED, ACCENT_PURPLE,
+from ui.theme import (apply_theme, PLOTLY_LAYOUT, PLOTLY_LEGEND, ACCENT_CYAN, ACCENT_AMBER, ACCENT_RED, ACCENT_PURPLE,
                       BG_MAIN, BORDER, TEXT_MAIN,
                       SYM_GRID, SYM_INSPECT, SYM_ORBIT, SYM_INJECT, SYM_CLEAR, SYM_ONLINE, SYM_OFFLINE)
 from ui.starfield import inject_starfield
@@ -257,7 +257,7 @@ fig.update_layout(
     xaxis_title="Altitude band (km)",
     yaxis_title="Normalised score",
     height=380,
-    legend=dict(orientation="h", y=1.12),
+    legend={**PLOTLY_LEGEND, "orientation": "h", "y": 1.12},
     margin=dict(l=40, r=20, t=70, b=60),
 )
 st.plotly_chart(fig, use_container_width=True)

@@ -27,7 +27,7 @@ import plotly.express as px
 import streamlit as st
 
 from ui.theme import (
-    apply_theme, PLOTLY_LAYOUT, TIER_COLOURS,
+    apply_theme, PLOTLY_LAYOUT, PLOTLY_LEGEND, TIER_COLOURS,
     ACCENT_CYAN, ACCENT_AMBER, ACCENT_RED, ACCENT_PURPLE,
     BG_MAIN, BG_PANEL, BORDER, TEXT_MAIN, TEXT_MUTED,
     SYM_VECTOR, SYM_ALERT, SYM_MONITOR, SYM_NOMINAL,
@@ -272,7 +272,7 @@ fig_scatter.update_layout(
     yaxis_title="Priority score  ↑  higher risk",
     height=420,
     margin=dict(l=40, r=20, t=70, b=60),
-    legend=dict(orientation="h", y=1.12),
+    legend={**PLOTLY_LEGEND, "orientation": "h", "y": 1.12},
 )
 st.plotly_chart(fig_scatter, use_container_width=True)
 
@@ -368,7 +368,7 @@ dv_fig.update_layout(
     yaxis_title="Delta-v (m/s)",
     height=340,
     margin=dict(l=40, r=20, t=60, b=60),
-    legend=dict(orientation="h", y=1.12),
+    legend={**PLOTLY_LEGEND, "orientation": "h", "y": 1.12},
 )
 st.plotly_chart(dv_fig, use_container_width=True)
 st.caption(
