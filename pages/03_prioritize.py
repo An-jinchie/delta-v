@@ -84,10 +84,17 @@ st.caption(
     "Outputs tiers (HIGH-PRIORITY / MONITOR / LOW) with delta-v on every entry."
 )
 
-st.error(
-    f"{SYM_VECTOR} Scoping constraint: delta-v costing is at the region / altitude-band level only — "
-    "not per individual object. Stage 1 produces size/shape/rotation (no state vector). "
-    "Stage 2 works at regional level. Object-level delta-v is not supported by the underlying data.",
+st.markdown(
+    f"""<div style="background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.25);
+    border-left:3px solid #00d4ff;border-radius:3px;padding:0.65rem 1rem;
+    font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:#8ecfea;
+    letter-spacing:0.02em;">
+    <span style="color:#00d4ff">{SYM_VECTOR} SCOPE</span> &nbsp;
+    Delta-v costing is at the <strong style="color:#c8d8e8">region / altitude-band level only</strong>
+    — not per individual object. Stage 1 produces size/shape/rotation (no state vector);
+    Stage 2 works at regional level. Object-level delta-v is not supportable by the underlying data.
+    </div>""",
+    unsafe_allow_html=True,
 )
 
 st.divider()

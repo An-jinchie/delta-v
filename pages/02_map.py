@@ -66,10 +66,16 @@ st.caption(
     "grid-based risk-density map across LEO altitude bands."
 )
 
-st.warning(
-    f"{SYM_GRID} Scope note: this is a grid-based accumulator — not a Bayesian filter or "
-    "particle filter. It does not track individual objects. It provides a live, "
-    "evolving regional risk picture, updated with each new detection batch.",
+st.markdown(
+    f"""<div style="background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.25);
+    border-left:3px solid #00d4ff;border-radius:3px;padding:0.65rem 1rem;
+    font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:#8ecfea;letter-spacing:0.02em;">
+    <span style="color:#00d4ff">{SYM_GRID} SCOPE</span> &nbsp;
+    This is a <strong style="color:#c8d8e8">grid-based accumulator</strong> —
+    not a Bayesian filter or particle filter. It does not track individual objects.
+    It provides a live, evolving regional risk picture, updated with each new detection batch.
+    </div>""",
+    unsafe_allow_html=True,
 )
 
 st.divider()

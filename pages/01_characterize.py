@@ -56,9 +56,15 @@ st.caption(
     "Given a debris light curve (brightness over time as an object tumbles), estimate "
     "size, shape, and rotation state. Math is primary. ML is secondary. All outputs are inspectable."
 )
-st.info(
-    f"{SYM_TARGET} Data transparency: light curves generated on this page are physics-based "
-    "synthetic data. Results are order-of-magnitude estimates — not precision measurements.",
+st.markdown(
+    f"""<div style="background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.25);
+    border-left:3px solid #00d4ff;border-radius:3px;padding:0.65rem 1rem;
+    font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:#8ecfea;letter-spacing:0.02em;">
+    <span style="color:#00d4ff">{SYM_TARGET} DATA</span> &nbsp;
+    Light curves on this page are <strong style="color:#c8d8e8">physics-based synthetic data</strong>.
+    Results are order-of-magnitude estimates — not precision measurements.
+    </div>""",
+    unsafe_allow_html=True,
 )
 
 st.divider()
