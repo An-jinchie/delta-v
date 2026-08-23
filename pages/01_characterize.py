@@ -18,36 +18,47 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from ai.granite import explain_characterization, granite_status
+from ui.theme import (apply_theme, PLOTLY_LAYOUT, ACCENT_CYAN, ACCENT_RED,
+                      BG_PANEL, BG_MAIN, BORDER, TEXT_MAIN,
+                      SYM_TARGET, SYM_SIGNAL, SYM_INSPECT, SYM_ORBIT, SYM_ONLINE, SYM_OFFLINE)
+from ui.starfield import inject_starfield
 from pipeline.characterize.generator import LightCurveGenerator, LightCurveParams
 from pipeline.characterize.inversion import invert
 from pipeline.characterize.features import FEATURE_NAMES, extract_features
 
 st.set_page_config(page_title="Delta-V · Characterize", page_icon="🛰️", layout="wide")
+apply_theme()
+inject_starfield()
 
 # ── Sidebar note ─────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("**Stage 1 · Characterize**")
+    st.markdown(
+        f"<span style='font-family:monospace;font-size:0.75rem;color:#00d4ff'>"
+        f"{SYM_TARGET} STAGE 1 · CHARACTERIZE</span>",
+        unsafe_allow_html=True,
+    )
     st.caption(
-        "Fourier decomposition + amplitude estimation is the **primary** method. "
+        "Fourier decomposition + amplitude estimation is the primary method. "
         "ML is secondary — it refines, never replaces, the math."
     )
     gs = granite_status()
-    if gs["available"]:
-        st.success(f"Granite: {gs['status_text']}", icon="🤖")
-    else:
-        st.info(f"Granite: {gs['status_text']}", icon="🤖")
+    sym = SYM_ONLINE if gs["available"] else SYM_OFFLINE
+    colour = "#2a9d6a" if gs["available"] else "#5a7a9a"
+    st.markdown(
+        f"<span style='color:{colour};font-family:monospace;font-size:0.73rem'>"
+        f"{sym} Granite: {gs['status_text']}</span>",
+        unsafe_allow_html=True,
+    )
 
 # ── Page header ───────────────────────────────────────────────────────────────
-st.title("Stage 1 · Characterize")
+st.markdown(f"<h1>{SYM_TARGET} CHARACTERIZE</h1>", unsafe_allow_html=True)
 st.caption(
     "Given a debris light curve (brightness over time as an object tumbles), estimate "
-    "size, shape, and rotation state. "
-    "**Math is primary. ML is secondary.** All outputs are inspectable."
+    "size, shape, and rotation state. Math is primary. ML is secondary. All outputs are inspectable."
 )
 st.info(
-    "⚠️ **Data transparency:** Light curves generated on this page are physics-based "
-    "**synthetic** data. Results are order-of-magnitude estimates — not precision measurements.",
-    icon="⚠️",
+    f"{SYM_TARGET} Data transparency: light curves generated on this page are physics-based "
+    "synthetic data. Results are order-of-magnitude estimates — not precision measurements.",
 )
 
 st.divider()
@@ -103,7 +114,7 @@ def _load_model():
 
 
 # ── Curve generation controls ─────────────────────────────────────────────────
-st.subheader("1 · Configure Light Curve")
+st.subheader(f"{SYM_SIGNAL} Configure Light Curve")
 
 col_params, col_preview = st.columns([1, 2])
 
@@ -134,7 +145,7 @@ with col_params:
                     help="Higher SNR = cleaner curve. Real MMT observations ≈ 8–15.")
     seed = st.number_input("Random seed", value=42, step=1)
 
-    generate_btn = st.button("⚡ Generate & Analyse", type="primary", use_container_width=True)
+    generate_btn = st.button(f"{SYM_TARGET} Generate & Analyse", type="primary", use_container_width=True)
 
 
 # ── Run pipeline on button press ──────────────────────────────────────────────
@@ -192,17 +203,16 @@ with col_preview:
     fig.add_trace(go.Scatter(
         x=t_axis, y=lc,
         mode="lines",
-        line=dict(color="#3b82d4", width=1.5),
+        line=dict(color=ACCENT_CYAN, width=1.5),
         name="Brightness",
     ))
     fig.update_layout(
-        title=dict(text=f"Synthetic light curve — {shape} / {size_class} / SNR {snr:.0f}", font_size=13),
+        **PLOTLY_LAYOUT,
+        title=dict(text=f"Synthetic light curve — {shape} / {size_class} / SNR {snr:.0f}", font_size=12),
         xaxis_title="Time (s)",
         yaxis_title="Normalised brightness",
         height=280,
         margin=dict(l=40, r=20, t=40, b=40),
-        plot_bgcolor="#f7f8fa",
-        paper_bgcolor="#ffffff",
     )
     st.plotly_chart(fig, use_container_width=True)
     st.caption("⚠️ SYNTHETIC DATA — physics-based generator. Not real telescope observations.")
@@ -210,7 +220,7 @@ with col_preview:
 st.divider()
 
 # ── Results ───────────────────────────────────────────────────────────────────
-st.subheader("2 · Inversion Results")
+st.subheader(f"{SYM_TARGET} Inversion Results")
 st.caption(
     "**Primary method:** Fourier decomposition + amplitude estimation. "
     "**Secondary:** ML classifier refines size/shape. "
@@ -250,7 +260,7 @@ with res_col4:
     st.caption(f"Signal quality: **{reliability}**")
 
 # ── FFT power spectrum ────────────────────────────────────────────────────────
-st.subheader("3 · FFT Power Spectrum")
+st.subheader(f"{SYM_SIGNAL} FFT Power Spectrum")
 
 fft_full  = np.fft.rfft(lc)
 fft_power = np.abs(fft_full)
@@ -260,29 +270,30 @@ fig_fft = go.Figure()
 fig_fft.add_trace(go.Bar(
     x=freqs[1:],
     y=fft_power[1:],
-    marker_color="#3b82d4",
+    marker_color=ACCENT_CYAN,
+    marker_opacity=0.75,
     name="AC power",
 ))
 fig_fft.add_vline(
     x=inv.rotation_rate_hz,
     line_dash="dash",
-    line_color="#e05555",
+    line_color=ACCENT_RED,
     annotation_text=f"Dominant: {inv.rotation_rate_hz:.4f} Hz",
     annotation_position="top right",
+    annotation_font_color=ACCENT_RED,
 )
 fig_fft.update_layout(
+    **PLOTLY_LAYOUT,
     title="FFT power spectrum (AC bins only — DC removed)",
     xaxis_title="Frequency (Hz)",
     yaxis_title="|FFT| amplitude",
     height=260,
     margin=dict(l=40, r=20, t=40, b=40),
-    plot_bgcolor="#f7f8fa",
-    paper_bgcolor="#ffffff",
 )
 st.plotly_chart(fig_fft, use_container_width=True)
 
 # ── Inspectable raw numbers ───────────────────────────────────────────────────
-with st.expander("🔍 Inspect: Inversion raw numbers + formulas"):
+with st.expander(f"{SYM_INSPECT} Inspect: Inversion raw numbers + formulas"):
     st.markdown("""
 **Formulas used (deterministic — no model weights):**
 
@@ -308,7 +319,7 @@ with st.expander("🔍 Inspect: Inversion raw numbers + formulas"):
     }
     st.json(raw)
 
-with st.expander("🔍 Inspect: ML feature vector (18 features)"):
+with st.expander(f"{SYM_INSPECT} Inspect: ML feature vector (18 features)"):
     feat_vec = prediction["features"]
     feat_df = pd.DataFrame({
         "Feature": FEATURE_NAMES,
@@ -324,7 +335,7 @@ with st.expander("🔍 Inspect: ML feature vector (18 features)"):
 st.divider()
 
 # ── IBM Granite analyst brief ─────────────────────────────────────────────────
-st.subheader("4 · Analyst Brief (IBM Granite)")
+st.subheader("◉ Analyst Brief — IBM Granite")
 
 if st.session_state.get("granite_explain") is None:
     with st.spinner("Generating analyst brief…"):
@@ -342,7 +353,7 @@ st.caption(
     "It does not produce or guess any values."
 )
 
-if st.button("🔄 Regenerate brief", help="Re-run Granite / fallback with the same data"):
+if st.button(f"{SYM_ORBIT} Regenerate brief", help="Re-run Granite / fallback with the same data"):
     st.session_state["granite_explain"] = None
     st.rerun()
 

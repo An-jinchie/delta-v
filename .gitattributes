@@ -1,10 +1,13 @@
 # Normalise line endings to LF in the repository (cross-platform safe for Streamlit Cloud)
 * text=auto eol=lf
-*.py text eol=lf
-*.toml text eol=lf
-*.txt text eol=lf
-*.md text eol=lf
-*.csv text eol=lf
+*.py   text eol=lf linguist-detectable=true
+*.toml text eol=lf linguist-detectable=true
+*.md   text eol=lf linguist-detectable=true
+*.txt  text eol=lf
+*.csv  text eol=lf linguist-detectable=false
 *.json text eol=lf
-*.yml text eol=lf
-*.yaml text eol=lf
+*.yml  text eol=lf linguist-language=YAML
+*.yaml text eol=lf linguist-language=YAML
+
+# CSS injected inside Python strings — surface ui/theme.py as CSS contribution
+ui/theme.py linguist-language=Python linguist-detectable=true

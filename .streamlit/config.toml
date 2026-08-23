@@ -3,11 +3,11 @@ headless = true
 port = 8501
 
 [theme]
-primaryColor = "#3b82d4"
-backgroundColor = "#ffffff"
-secondaryBackgroundColor = "#f7f8fa"
-textColor = "#1f2328"
-font = "sans serif"
+primaryColor      = "#00d4ff"       # cyan — primary accent, buttons, links
+backgroundColor   = "#0a0e1a"       # deep space black-blue
+secondaryBackgroundColor = "#0f1629" # slightly lighter panels / cards
+textColor         = "#c8d8e8"       # cool off-white — easy on dark bg
+font              = "monospace"
 
 [browser]
 gatherUsageStats = false

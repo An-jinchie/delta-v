@@ -14,6 +14,8 @@ Session state keys used across all pages (initialised on first load):
 
 import streamlit as st
 from config import get_config, granite_available
+from ui.theme import apply_theme, SYM_TARGET, SYM_GRID, SYM_VECTOR, SYM_ORBIT, SYM_ONLINE, SYM_OFFLINE
+from ui.starfield import inject_starfield
 
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -41,26 +43,51 @@ for key, default in _defaults.items():
 # ── Config ───────────────────────────────────────────────────────────────────
 cfg = get_config()
 
+apply_theme()
+inject_starfield()
+
 # ── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.title("🛰️ Delta-V")
+    st.markdown(
+        "<div style='font-family:monospace;font-size:1.1rem;font-weight:600;"
+        "color:#00d4ff;letter-spacing:0.08em;text-transform:uppercase;"
+        "padding:0.5rem 0 0.25rem'>△ DELTA-V</div>",
+        unsafe_allow_html=True,
+    )
     st.caption("Space debris characterization, risk mapping, and delta-v-costed prioritization.")
     st.divider()
-    st.page_link("app.py", label="🏠 Home", icon="🏠")
-    st.page_link("pages/01_characterize.py", label="Stage 1 — Characterize")
-    st.page_link("pages/02_map.py", label="Stage 2 — Map")
-    st.page_link("pages/03_prioritize.py", label="Stage 3 — Prioritize")
+    st.page_link("app.py",                    label=f"{SYM_ORBIT}  Mission Home")
+    st.page_link("pages/01_characterize.py",  label=f"{SYM_TARGET}  Stage 1 — Characterize")
+    st.page_link("pages/02_map.py",           label=f"{SYM_GRID}  Stage 2 — Map")
+    st.page_link("pages/03_prioritize.py",    label=f"{SYM_VECTOR}  Stage 3 — Prioritize")
     st.divider()
 
-    # Granite status indicator
     if granite_available(cfg):
-        st.success("IBM Granite ✓ connected", icon="🤖")
+        st.markdown(
+            f"<span style='color:#2a9d6a;font-family:monospace;font-size:0.75rem'>"
+            f"{SYM_ONLINE} IBM Granite — connected</span>",
+            unsafe_allow_html=True,
+        )
     else:
-        st.info("IBM Granite — using fallback text\n\nSet WATSONX_API_KEY to enable.", icon="🤖")
+        st.markdown(
+            f"<span style='color:#5a7a9a;font-family:monospace;font-size:0.75rem'>"
+            f"{SYM_OFFLINE} IBM Granite — fallback mode<br>"
+            f"<span style='font-size:0.68rem'>Set WATSONX_API_KEY to enable.</span></span>",
+            unsafe_allow_html=True,
+        )
 
-# ── Home page ─────────────────────────────────────────────────────────────────
-st.title("🛰️ Delta-V")
-st.subheader("Physics-grounded debris characterization, risk mapping, and delta-v-costed prioritization for LEO.")
+# ── Home page header ──────────────────────────────────────────────────────────
+st.markdown(
+    "<h1 style='margin-top:0.5rem'>△ DELTA-V</h1>",
+    unsafe_allow_html=True,
+)
+st.markdown(
+    "<p style='color:#8ecfea;font-family:monospace;font-size:0.88rem;"
+    "letter-spacing:0.04em;margin-top:-0.5rem;margin-bottom:1rem'>"
+    "PHYSICS-GROUNDED DEBRIS CHARACTERIZATION · RISK MAPPING · DELTA-V-COSTED PRIORITIZATION FOR LEO"
+    "</p>",
+    unsafe_allow_html=True,
+)
 
 st.markdown("""
 > **The problem:** Small space debris (1mm–10cm) is too small for the U.S. Space Surveillance
@@ -74,51 +101,66 @@ st.markdown("""
 
 st.divider()
 
-# ── Pipeline flow ─────────────────────────────────────────────────────────────
-col1, arrow1, col2, arrow2, col3 = st.columns([4, 1, 4, 1, 4])
+# ── Pipeline stage cards ───────────────────────────────────────────────────────
+col1, arrow1, col2, arrow2, col3 = st.columns([10, 1, 10, 1, 10])
 
 with col1:
-    st.markdown("### 1 · Characterize")
-    st.markdown(
-        "Given a debris light curve, estimate **size, shape, and rotation state** "
-        "using Fourier decomposition and amplitude-based inversion. "
-        "ML refines on top of those physical estimates."
-    )
+    st.markdown("""
+<div class="stage-card">
+  <div class="stage-num">Stage 01</div>
+  <div class="stage-title">◎ Characterize</div>
+  <div class="stage-body">
+    Given a debris light curve, estimate <strong>size, shape, and rotation state</strong>
+    using Fourier decomposition and amplitude-based inversion.
+    ML refines on top of those physical estimates — math is always primary.
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
 with arrow1:
-    st.markdown("<div style='font-size:2rem;text-align:center;margin-top:2rem'>→</div>",
-                unsafe_allow_html=True)
+    st.markdown("<div class='pipe-arrow' style='margin-top:3rem'>⟶</div>", unsafe_allow_html=True)
 
 with col2:
-    st.markdown("### 2 · Map")
-    st.markdown(
-        "Characterized detections feed a **grid-based risk-density map** across LEO "
-        "altitude bands, weighted by recency and confidence. "
-        "Updated with each new detection batch."
-    )
+    st.markdown("""
+<div class="stage-card">
+  <div class="stage-num">Stage 02</div>
+  <div class="stage-title">⊞ Map</div>
+  <div class="stage-body">
+    Characterised detections feed a <strong>grid-based risk-density map</strong>
+    across LEO altitude bands, weighted by recency and confidence.
+    Updated with each new detection batch. Not a Bayesian filter.
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
 with arrow2:
-    st.markdown("<div style='font-size:2rem;text-align:center;margin-top:2rem'>→</div>",
-                unsafe_allow_html=True)
+    st.markdown("<div class='pipe-arrow' style='margin-top:3rem'>⟶</div>", unsafe_allow_html=True)
 
 with col3:
-    st.markdown("### 3 · Prioritize")
-    st.markdown(
-        "Each high-risk region is **costed using Hohmann transfer delta-v** "
-        "and ranked by `risk × severity ÷ delta-v`. "
-        "Outputs tiers (HIGH-PRIORITY / MONITOR / LOW) with delta-v on every entry."
-    )
+    st.markdown("""
+<div class="stage-card">
+  <div class="stage-num">Stage 03</div>
+  <div class="stage-title">△ Prioritize</div>
+  <div class="stage-body">
+    Each high-risk region is <strong>costed using Hohmann transfer delta-v</strong>
+    and ranked by <code>risk × severity ÷ delta-v</code>.
+    Outputs tiers with delta-v on every entry. Exports CSV/JSON.
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
 st.divider()
 
 # ── Summary dashboard ─────────────────────────────────────────────────────────
-st.markdown("### Pipeline Status")
+st.markdown(
+    "<h3 style='margin-bottom:0.75rem'>⊞ PIPELINE STATUS</h3>",
+    unsafe_allow_html=True,
+)
 
 m1, m2, m3, m4 = st.columns(4)
 
-risk_df = st.session_state.risk_map_df
+risk_df     = st.session_state.risk_map_df
 priority_df = st.session_state.priority_df
-char_result = st.session_state.characterize_result
 
 with m1:
     if risk_df is not None and not risk_df.empty:
@@ -145,20 +187,22 @@ with m4:
     if granite_available(cfg):
         st.metric("IBM Granite", "Connected")
     else:
-        st.metric("IBM Granite", "Fallback mode")
+        st.metric("IBM Granite", "Fallback")
 
 st.divider()
 
 # ── Run full pipeline demo ────────────────────────────────────────────────────
-st.markdown("### Run Full Pipeline Demo")
+st.markdown(
+    "<h3 style='margin-bottom:0.25rem'>▶ RUN FULL PIPELINE DEMO</h3>",
+    unsafe_allow_html=True,
+)
 st.caption(
     "Runs all three stages end-to-end using a synthetic demo light curve "
     "and the TLE fallback snapshot. Results populate the status cards above."
 )
 
-if st.button("▶ Run Full Pipeline Demo", type="primary"):
+if st.button("▶ Execute Pipeline Demo", type="primary"):
     import time as _time
-    import numpy as _np
 
     progress = st.progress(0, text="Stage 1 — generating demo light curve…")
 
@@ -211,7 +255,6 @@ if st.button("▶ Run Full Pipeline Demo", type="primary"):
         density_df = compute_density(tle_lines)
 
         risk_map = RiskDensityMap()
-        # Inject a demo detection from the Stage 1 result
         risk_map.update([{
             "altitude_band_km": "600-800",
             "confidence": 0.85,
@@ -239,18 +282,16 @@ if st.button("▶ Run Full Pipeline Demo", type="primary"):
     except Exception as exc:
         st.error(f"Stage 3 failed: {exc}")
 
-    progress.progress(100, text="Done!")
+    progress.progress(100, text="Done.")
     st.success(
-        "✅ Full pipeline demo complete. "
-        "Status cards above are now populated. "
+        "Pipeline demo complete. Status cards above are now populated. "
         "Navigate to each stage page to explore results.",
-        icon="🛰️",
     )
     st.rerun()
 
 st.divider()
 st.caption(
-    "⚠️ **Data transparency:** Light-curve training data is physics-based synthetic. "
+    "◎ Data transparency: light-curve training data is physics-based synthetic. "
     "TLE orbital data sourced from CelesTrak (public, no registration). "
     "Characterization validated against Mini-MegaTORTORA real light-curve data. "
     "All synthetic data is clearly labeled throughout the app."

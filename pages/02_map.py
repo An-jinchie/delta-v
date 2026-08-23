@@ -27,37 +27,46 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from ai.granite import write_situation_report, granite_status
+from ui.theme import apply_theme, PLOTLY_LAYOUT, ACCENT_CYAN, ACCENT_AMBER, ACCENT_RED, ACCENT_PURPLE, BG_MAIN, BORDER, TEXT_MAIN
 from pipeline.map.density import compute_density
 from pipeline.map.risk_map import RiskDensityMap
 from pipeline.map.tle_fetcher import TLEFetcher
 
 st.set_page_config(page_title="Delta-V · Map", page_icon="🛰️", layout="wide")
+apply_theme()
+inject_starfield()
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("**Stage 2 · Map**")
+    st.markdown(
+        f"<span style='font-family:monospace;font-size:0.75rem;color:#00d4ff'>"
+        f"{SYM_GRID} STAGE 2 · MAP</span>",
+        unsafe_allow_html=True,
+    )
     st.caption(
         "Grid-based accumulator across LEO altitude bands. "
-        "**NOT** a Bayesian filter — does not track individual objects."
+        "Not a Bayesian filter — does not track individual objects."
     )
     gs = granite_status()
-    if gs["available"]:
-        st.success(f"Granite: {gs['status_text']}", icon="🤖")
-    else:
-        st.info(f"Granite: {gs['status_text']}", icon="🤖")
+    sym = SYM_ONLINE if gs["available"] else SYM_OFFLINE
+    colour = "#2a9d6a" if gs["available"] else "#5a7a9a"
+    st.markdown(
+        f"<span style='color:{colour};font-family:monospace;font-size:0.73rem'>"
+        f"{sym} Granite: {gs['status_text']}</span>",
+        unsafe_allow_html=True,
+    )
 
 # ── Page header ───────────────────────────────────────────────────────────────
-st.title("Stage 2 · Map")
+st.markdown(f"<h1>{SYM_GRID} MAP</h1>", unsafe_allow_html=True)
 st.caption(
     "Characterised detections combine with TLE-tracked object density into a "
-    "**grid-based probabilistic risk-density map** across LEO altitude bands."
+    "grid-based risk-density map across LEO altitude bands."
 )
 
 st.warning(
-    "**Scope note:** This is a grid-based accumulator — NOT a Bayesian filter or "
+    f"{SYM_GRID} Scope note: this is a grid-based accumulator — not a Bayesian filter or "
     "particle filter. It does not track individual objects. It provides a live, "
     "evolving regional risk picture, updated with each new detection batch.",
-    icon="⚠️",
 )
 
 st.divider()
@@ -79,12 +88,12 @@ def _compute_density_cached():
 
 
 # ── TLE loading section ───────────────────────────────────────────────────────
-st.subheader("1 · TLE Data")
+st.subheader(f"{SYM_ORBIT} TLE Data")
 
 load_col, status_col = st.columns([2, 3])
 
 with load_col:
-    force_reload = st.button("🔄 Reload TLE data", help="Bypass cache and re-fetch")
+    force_reload = st.button(f"{SYM_ORBIT} Reload TLE data", help="Bypass cache and re-fetch")
 
 if force_reload:
     st.cache_data.clear()
@@ -116,7 +125,7 @@ if tle_ok:
 st.divider()
 
 # ── Detection injection ───────────────────────────────────────────────────────
-st.subheader("2 · Inject Characterised Detections")
+st.subheader(f"{SYM_INJECT} Inject Characterised Detections")
 st.caption(
     "Simulate detection batches to see how characterised debris updates the risk map. "
     "In a live deployment, detections would flow from Stage 1 automatically."
@@ -136,8 +145,8 @@ with det_col1:
     det_size = st.selectbox("Detection size class", ["small", "medium", "large"], index=1)
     det_seed = st.number_input("Detection seed", value=7, step=1)
 
-    inject_btn = st.button("💉 Inject detections", type="primary", use_container_width=True)
-    clear_btn  = st.button("🗑 Clear all detections", use_container_width=True)
+    inject_btn = st.button(f"{SYM_INJECT} Inject detections", type="primary", use_container_width=True)
+    clear_btn  = st.button(f"{SYM_CLEAR} Clear all detections", use_container_width=True)
 
 _BAND_LABELS_ALL = ["200-400","400-600","600-800","800-1000",
                     "1000-1200","1200-1400","1400-1600","1600-2000"]
@@ -151,7 +160,7 @@ if clear_btn:
     risk_map.clear()
     st.session_state["risk_map_df"] = None
     st.session_state["granite_sitrep"] = None
-    st.toast("Detections cleared.", icon="🗑")
+    st.toast(f"{SYM_CLEAR} Detections cleared.")
 
 if inject_btn and n_detections > 0:
     rng = np.random.default_rng(int(det_seed))
@@ -169,7 +178,7 @@ if inject_btn and n_detections > 0:
         })
     risk_map.update(detections)
     st.session_state["granite_sitrep"] = None  # invalidate cached sitrep
-    st.toast(f"Injected {n_detections} detections.", icon="💉")
+    st.toast(f"{SYM_INJECT} Injected {n_detections} detections.")
 
 # Also pull any real characterization from Stage 1
 char_result = st.session_state.get("characterize_result")
@@ -201,7 +210,7 @@ if not tle_ok or density_df is None:
     st.error("Cannot compute risk map without TLE data.")
     st.stop()
 
-st.subheader("3 · Composite Risk-Density Map")
+st.subheader(f"{SYM_GRID} Composite Risk-Density Map")
 
 risk_df = risk_map.compute(density_df)
 st.session_state["risk_map_df"] = risk_df
@@ -209,12 +218,6 @@ st.session_state["tle_last_updated"] = datetime.now(timezone.utc).isoformat()
 st.session_state["tle_object_count"] = int(density_df["object_count"].sum())
 
 # ── Bar chart ─────────────────────────────────────────────────────────────────
-_TIER_COLOUR = {
-    "HIGH-PRIORITY": "#e05555",
-    "MONITOR":       "#f5a623",
-    "LOW":           "#3b82d4",
-}
-
 bands     = risk_df["band_label"].tolist()
 tle_norm  = risk_df["density_per_km"] / max(risk_df["density_per_km"].max(), 1e-12)
 det_norm  = (risk_df["detection_confidence_weighted"] /
@@ -226,34 +229,33 @@ fig.add_trace(go.Bar(
     name="TLE density (norm)",
     x=bands,
     y=tle_norm.tolist(),
-    marker_color="#7c5cd8",
-    opacity=0.6,
+    marker_color=ACCENT_PURPLE,
+    opacity=0.65,
 ))
 fig.add_trace(go.Bar(
     name="Detection weight (norm)",
     x=bands,
     y=det_norm.tolist(),
-    marker_color="#f5a623",
-    opacity=0.7,
+    marker_color=ACCENT_AMBER,
+    opacity=0.75,
 ))
 fig.add_trace(go.Scatter(
     name="Composite risk density",
     x=bands,
     y=composite,
     mode="lines+markers",
-    line=dict(color="#e05555", width=2),
-    marker=dict(size=8),
+    line=dict(color=ACCENT_CYAN, width=2),
+    marker=dict(size=8, color=ACCENT_CYAN),
 ))
 fig.update_layout(
+    **PLOTLY_LAYOUT,
     barmode="overlay",
     title="LEO Risk-Density Map — composite score by altitude band",
-    xaxis_title="Altitude band",
+    xaxis_title="Altitude band (km)",
     yaxis_title="Normalised score",
-    height=360,
-    legend=dict(orientation="h", y=1.1),
-    margin=dict(l=40, r=20, t=60, b=60),
-    plot_bgcolor="#f7f8fa",
-    paper_bgcolor="#ffffff",
+    height=380,
+    legend=dict(orientation="h", y=1.12),
+    margin=dict(l=40, r=20, t=70, b=60),
 )
 st.plotly_chart(fig, use_container_width=True)
 
@@ -273,7 +275,7 @@ display_df["Det. weight (recency)"] = display_df["Det. weight (recency)"].map("{
 st.dataframe(display_df, use_container_width=True, hide_index=True)
 
 # ── Inspectable formulas ──────────────────────────────────────────────────────
-with st.expander("🔍 Inspect: How the composite score is computed"):
+with st.expander(f"{SYM_INSPECT} Inspect: How the composite score is computed"):
     st.markdown(f"""
 **Algorithm (grid-based accumulator — NOT Bayesian):**
 
@@ -304,7 +306,7 @@ The grid-based approach is consistent with what the data actually provides.
 st.divider()
 
 # ── IBM Granite situation report ──────────────────────────────────────────────
-st.subheader("4 · Situation Report (IBM Granite)")
+st.subheader("◉ Situation Report — IBM Granite")
 
 if st.session_state.get("granite_sitrep") is None:
     with st.spinner("Generating situation report…"):
@@ -322,7 +324,7 @@ st.caption(
     "It does not produce or guess any numbers."
 )
 
-if st.button("🔄 Regenerate situation report"):
+if st.button(f"{SYM_ORBIT} Regenerate situation report"):
     st.session_state["granite_sitrep"] = None
     st.rerun()
 

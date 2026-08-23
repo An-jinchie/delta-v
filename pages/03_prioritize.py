@@ -26,6 +26,15 @@ import plotly.graph_objects as go
 import plotly.express as px
 import streamlit as st
 
+from ui.theme import (
+    apply_theme, PLOTLY_LAYOUT, TIER_COLOURS,
+    ACCENT_CYAN, ACCENT_AMBER, ACCENT_RED, ACCENT_PURPLE,
+    BG_MAIN, BG_PANEL, BORDER, TEXT_MAIN, TEXT_MUTED,
+    SYM_VECTOR, SYM_ALERT, SYM_MONITOR, SYM_NOMINAL,
+    SYM_INSPECT, SYM_ORBIT, SYM_DOWNLOAD, SYM_ONLINE, SYM_OFFLINE,
+)
+from ui.starfield import inject_starfield
+
 from ai.granite import write_mission_brief, granite_status
 from pipeline.map.density import compute_density, ALTITUDE_BANDS
 from pipeline.map.risk_map import RiskDensityMap
@@ -44,39 +53,47 @@ from pipeline.prioritize.scorer import (
 )
 
 st.set_page_config(page_title="Delta-V · Prioritize", page_icon="🛰️", layout="wide")
+apply_theme()
+inject_starfield()
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("**Stage 3 · Prioritize**")
+    st.markdown(
+        f"<span style='font-family:monospace;font-size:0.75rem;color:#00d4ff'>"
+        f"{SYM_VECTOR} STAGE 3 · PRIORITIZE</span>",
+        unsafe_allow_html=True,
+    )
     st.caption(
         "Region-level delta-v costing only. "
         "Stage 1 gives no state vector — object-level delta-v is not supportable."
     )
     gs = granite_status()
-    if gs["available"]:
-        st.success(f"Granite: {gs['status_text']}", icon="🤖")
-    else:
-        st.info(f"Granite: {gs['status_text']}", icon="🤖")
+    sym = SYM_ONLINE if gs["available"] else SYM_OFFLINE
+    colour = "#2a9d6a" if gs["available"] else "#5a7a9a"
+    st.markdown(
+        f"<span style='color:{colour};font-family:monospace;font-size:0.73rem'>"
+        f"{sym} Granite: {gs['status_text']}</span>",
+        unsafe_allow_html=True,
+    )
 
 # ── Page header ───────────────────────────────────────────────────────────────
-st.title("Stage 3 · Prioritize")
+st.markdown(f"<h1>{SYM_VECTOR} PRIORITIZE</h1>", unsafe_allow_html=True)
 st.caption(
-    "Each high-risk altitude band is **costed** with Hohmann transfer + plane-change "
-    "delta-v, then ranked by `risk × severity ÷ delta_v`. "
+    "Each high-risk altitude band is costed with Hohmann transfer + plane-change "
+    "delta-v, then ranked by risk × severity ÷ delta_v. "
     "Outputs tiers (HIGH-PRIORITY / MONITOR / LOW) with delta-v on every entry."
 )
 
 st.error(
-    "**Scoping constraint:** Delta-v costing is at the **region / altitude-band level only** — "
+    f"{SYM_VECTOR} Scoping constraint: delta-v costing is at the region / altitude-band level only — "
     "not per individual object. Stage 1 produces size/shape/rotation (no state vector). "
     "Stage 2 works at regional level. Object-level delta-v is not supported by the underlying data.",
-    icon="🚀",
 )
 
 st.divider()
 
 # ── Scorer configuration ──────────────────────────────────────────────────────
-st.subheader("1 · Scoring Parameters")
+st.subheader(f"{SYM_VECTOR} Scoring Parameters")
 
 cfg_col1, cfg_col2, cfg_col3 = st.columns(3)
 
@@ -102,7 +119,7 @@ with cfg_col3:
         help="Size class used for severity index calculation across all bands.",
     )
 
-run_btn = st.button("⚡ Compute Priority Scores", type="primary", use_container_width=True)
+run_btn = st.button(f"{SYM_VECTOR} Compute Priority Scores", type="primary", use_container_width=True)
 
 st.divider()
 
@@ -158,7 +175,7 @@ if priority_df is None or priority_df.empty:
     st.info("Click '⚡ Compute Priority Scores' to run.", icon="👆")
     st.stop()
 
-st.subheader("2 · Priority Results")
+st.subheader(f"{SYM_VECTOR} Priority Results")
 st.caption(f"Risk map source: **{risk_source}**")
 
 # ── Tier summary cards ────────────────────────────────────────────────────────
@@ -168,32 +185,57 @@ low_df     = priority_df[priority_df["tier"] == "LOW"]
 
 card1, card2, card3 = st.columns(3)
 with card1:
-    st.metric(
-        "🔴 HIGH-PRIORITY",
-        len(high_df),
-        help=f"Priority score ≥ {TIER_HIGH_MIN}",
+    st.markdown(
+        f"<div style='background:{BG_PANEL};border:1px solid {TIER_COLOURS['HIGH-PRIORITY']};"
+        f"border-top:2px solid {TIER_COLOURS['HIGH-PRIORITY']};border-radius:4px;"
+        f"padding:1rem 1.25rem;position:relative;overflow:hidden'>"
+        f"<div style='font-family:monospace;font-size:0.65rem;text-transform:uppercase;"
+        f"letter-spacing:0.1em;color:{TEXT_MUTED};margin-bottom:0.3rem'>"
+        f"{SYM_ALERT} HIGH-PRIORITY</div>"
+        f"<div style='font-family:monospace;font-size:2.2rem;font-weight:600;"
+        f"color:{TIER_COLOURS['HIGH-PRIORITY']};line-height:1;text-shadow:0 0 12px rgba(255,75,75,0.4)'>"
+        f"{len(high_df)}</div>"
+        f"<div style='font-family:monospace;font-size:0.65rem;color:{TEXT_MUTED};margin-top:0.2rem'>"
+        f"score ≥ {TIER_HIGH_MIN}</div>"
+        f"</div>",
+        unsafe_allow_html=True,
     )
 with card2:
-    st.metric(
-        "🟡 MONITOR",
-        len(monitor_df),
-        help=f"Priority score {TIER_MONITOR_MIN}–{TIER_HIGH_MIN}",
+    st.markdown(
+        f"<div style='background:{BG_PANEL};border:1px solid {TIER_COLOURS['MONITOR']};"
+        f"border-top:2px solid {TIER_COLOURS['MONITOR']};border-radius:4px;"
+        f"padding:1rem 1.25rem;position:relative;overflow:hidden'>"
+        f"<div style='font-family:monospace;font-size:0.65rem;text-transform:uppercase;"
+        f"letter-spacing:0.1em;color:{TEXT_MUTED};margin-bottom:0.3rem'>"
+        f"{SYM_MONITOR} MONITOR</div>"
+        f"<div style='font-family:monospace;font-size:2.2rem;font-weight:600;"
+        f"color:{TIER_COLOURS['MONITOR']};line-height:1;text-shadow:0 0 12px rgba(245,166,35,0.3)'>"
+        f"{len(monitor_df)}</div>"
+        f"<div style='font-family:monospace;font-size:0.65rem;color:{TEXT_MUTED};margin-top:0.2rem'>"
+        f"{TIER_MONITOR_MIN}–{TIER_HIGH_MIN}</div>"
+        f"</div>",
+        unsafe_allow_html=True,
     )
 with card3:
-    st.metric(
-        "🔵 LOW",
-        len(low_df),
-        help=f"Priority score < {TIER_MONITOR_MIN}",
+    st.markdown(
+        f"<div style='background:{BG_PANEL};border:1px solid {TIER_COLOURS['LOW']};"
+        f"border-top:2px solid {TIER_COLOURS['LOW']};border-radius:4px;"
+        f"padding:1rem 1.25rem;position:relative;overflow:hidden'>"
+        f"<div style='font-family:monospace;font-size:0.65rem;text-transform:uppercase;"
+        f"letter-spacing:0.1em;color:{TEXT_MUTED};margin-bottom:0.3rem'>"
+        f"{SYM_NOMINAL} LOW</div>"
+        f"<div style='font-family:monospace;font-size:2.2rem;font-weight:600;"
+        f"color:{TIER_COLOURS['LOW']};line-height:1;text-shadow:0 0 12px rgba(42,157,106,0.3)'>"
+        f"{len(low_df)}</div>"
+        f"<div style='font-family:monospace;font-size:0.65rem;color:{TEXT_MUTED};margin-top:0.2rem'>"
+        f"score < {TIER_MONITOR_MIN}</div>"
+        f"</div>",
+        unsafe_allow_html=True,
     )
 
 # ── Priority vs delta-v scatter ───────────────────────────────────────────────
-_TIER_COLOURS = {
-    "HIGH-PRIORITY": "#e05555",
-    "MONITOR":       "#f5a623",
-    "LOW":           "#3b82d4",
-}
 plot_df = priority_df.copy()
-plot_df["colour"] = plot_df["tier"].map(_TIER_COLOURS)
+plot_df["colour"] = plot_df["tier"].map(TIER_COLOURS)
 plot_df["hover"] = plot_df.apply(
     lambda r: (
         f"<b>{r['band_label']}</b><br>"
@@ -207,7 +249,7 @@ plot_df["hover"] = plot_df.apply(
 )
 
 fig_scatter = go.Figure()
-for tier, colour in _TIER_COLOURS.items():
+for tier, colour in TIER_COLOURS.items():
     sub = plot_df[plot_df["tier"] == tier]
     if sub.empty:
         continue
@@ -224,19 +266,18 @@ for tier, colour in _TIER_COLOURS.items():
     ))
 
 fig_scatter.update_layout(
-    title="Priority score vs. delta-v cost per altitude band",
-    xaxis_title="Total delta-v (m/s)  ←  cheaper",
+    **PLOTLY_LAYOUT,
+    title="Priority score vs. delta-v cost — upper-left = act first",
+    xaxis_title="Total Δv (m/s)  ←  cheaper",
     yaxis_title="Priority score  ↑  higher risk",
-    height=400,
-    margin=dict(l=40, r=20, t=60, b=60),
-    plot_bgcolor="#f7f8fa",
-    paper_bgcolor="#ffffff",
-    legend=dict(orientation="h", y=1.1),
+    height=420,
+    margin=dict(l=40, r=20, t=70, b=60),
+    legend=dict(orientation="h", y=1.12),
 )
 st.plotly_chart(fig_scatter, use_container_width=True)
 
 # ── Ranked table ──────────────────────────────────────────────────────────────
-_TIER_ICONS = {"HIGH-PRIORITY": "🔴", "MONITOR": "🟡", "LOW": "🔵"}
+_TIER_ICONS = {"HIGH-PRIORITY": "■ ", "MONITOR": "▲ ", "LOW": "● "}
 
 display_df = priority_df[[
     "rank", "band_label", "tier", "priority_score",
@@ -257,7 +298,7 @@ for col in ["Δv Hohmann (m/s)", "Δv plane-chg (m/s)", "Δv total (m/s)"]:
 st.dataframe(display_df, use_container_width=True, hide_index=True)
 
 # ── Inspectable formulas ──────────────────────────────────────────────────────
-with st.expander("🔍 Inspect: Delta-v formulas + current parameters"):
+with st.expander(f"{SYM_INSPECT} Inspect: Delta-v formulas + current parameters"):
     sev = severity_index(dominant_size)
     st.markdown(f"""
 **Delta-v computation (region-level only — not per object):**
@@ -298,37 +339,36 @@ severity = size_weight × (size_m² × V_REL²) / max_possible
 **Constants:**  GM = {GM} km³/s²  ·  R_EARTH = {R_EARTH} km  ·  V_REL = {V_REL_MS} m/s
 """)
 
-with st.expander("🔍 Inspect: Full priority DataFrame (raw numbers)"):
+with st.expander(f"{SYM_INSPECT} Inspect: Full priority DataFrame (raw numbers)"):
     st.dataframe(priority_df, use_container_width=True, hide_index=True)
 
 st.divider()
 
 # ── Per-band delta-v bar chart ────────────────────────────────────────────────
-st.subheader("3 · Delta-V Cost Breakdown by Band")
+st.subheader(f"{SYM_VECTOR} Delta-V Cost Breakdown by Band")
 
 dv_fig = go.Figure()
 dv_fig.add_trace(go.Bar(
     name="Hohmann Δv",
     x=priority_df["band_label"],
     y=priority_df["dv_hohmann_ms"],
-    marker_color="#7c5cd8",
+    marker_color=ACCENT_PURPLE,
 ))
 dv_fig.add_trace(go.Bar(
     name=f"Plane-change Δv ({plane_change_deg}°)",
     x=priority_df["band_label"],
     y=priority_df["dv_plane_ms"],
-    marker_color="#f5a623",
+    marker_color=ACCENT_AMBER,
 ))
 dv_fig.update_layout(
+    **PLOTLY_LAYOUT,
     barmode="stack",
-    title=f"Delta-v cost per band (from {h_ref:.0f} km reference orbit)",
-    xaxis_title="Altitude band",
+    title=f"Δv cost per band — reference orbit {h_ref:.0f} km",
+    xaxis_title="Altitude band (km)",
     yaxis_title="Delta-v (m/s)",
-    height=320,
-    margin=dict(l=40, r=20, t=50, b=60),
-    plot_bgcolor="#f7f8fa",
-    paper_bgcolor="#ffffff",
-    legend=dict(orientation="h", y=1.1),
+    height=340,
+    margin=dict(l=40, r=20, t=60, b=60),
+    legend=dict(orientation="h", y=1.12),
 )
 st.plotly_chart(dv_fig, use_container_width=True)
 st.caption(
@@ -340,7 +380,7 @@ st.caption(
 st.divider()
 
 # ── IBM Granite mission brief ─────────────────────────────────────────────────
-st.subheader("4 · Mission Brief (IBM Granite)")
+st.subheader("◉ Mission Brief — IBM Granite")
 
 if st.session_state.get("granite_brief") is None:
     with st.spinner("Generating mission brief…"):
@@ -358,25 +398,24 @@ st.caption(
     "It does not produce or guess any numerical values."
 )
 
-if st.button("🔄 Regenerate mission brief"):
+if st.button(f"{SYM_ORBIT} Regenerate mission brief"):
     st.session_state["granite_brief"] = None
     st.rerun()
 
 st.divider()
 
 # ── Export ────────────────────────────────────────────────────────────────────
-st.subheader("5 · Export")
+st.subheader(f"{SYM_DOWNLOAD} Export")
 st.caption("Download the full priority table with delta-v costs on every entry.")
 
 export_col1, export_col2 = st.columns(2)
 
 with export_col1:
     csv_buf = io.StringIO()
-    # Write header comment for data transparency
     csv_buf.write("# DELTA-V PRIORITY EXPORT — region-level delta-v costing only, not per-object\n")
     priority_df.to_csv(csv_buf, index=False)
     st.download_button(
-        "⬇ Download CSV",
+        f"{SYM_DOWNLOAD} Download CSV",
         data=csv_buf.getvalue(),
         file_name="delta_v_priority.csv",
         mime="text/csv",
@@ -386,14 +425,14 @@ with export_col1:
 with export_col2:
     json_str = priority_df.to_json(orient="records", indent=2)
     st.download_button(
-        "⬇ Download JSON",
+        f"{SYM_DOWNLOAD} Download JSON",
         data=json_str,
         file_name="delta_v_priority.json",
         mime="application/json",
         use_container_width=True,
     )
 
-with st.expander("📋 Preview export (first 4 rows)"):
+with st.expander(f"{SYM_INSPECT} Preview export (first 4 rows)"):
     preview = priority_df.head(4)[[
         "rank", "band_label", "tier", "priority_score",
         "dv_hohmann_ms", "dv_plane_ms", "dv_total_ms",
