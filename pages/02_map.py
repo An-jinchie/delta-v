@@ -31,6 +31,7 @@ from ui.theme import (apply_theme, PLOTLY_LAYOUT, PLOTLY_LEGEND, ACCENT_CYAN, AC
                       BG_MAIN, BORDER, TEXT_MAIN,
                       SYM_GRID, SYM_INSPECT, SYM_ORBIT, SYM_INJECT, SYM_CLEAR, SYM_ONLINE, SYM_OFFLINE)
 from ui.starfield import inject_starfield
+from ui.orbital_view import render_orbital_view
 from pipeline.map.density import compute_density
 from pipeline.map.risk_map import RiskDensityMap
 from pipeline.map.tle_fetcher import TLEFetcher
@@ -93,7 +94,14 @@ def _compute_density_cached():
     tle_lines = fetcher.fetch()
     source = "CelesTrak (live)" if len(tle_lines) > 100 else "synthetic fallback snapshot"
     density_df = compute_density(tle_lines)
-    return density_df, source, len(tle_lines)
+    return density_df, source, tle_lines   # return lines too for orbital view
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def _get_tle_lines_cached():
+    """Return raw TLE lines (separate cache entry for the orbital view)."""
+    fetcher = _get_fetcher()
+    return fetcher.fetch()
 
 
 # ── TLE loading section ───────────────────────────────────────────────────────
@@ -108,12 +116,14 @@ if force_reload:
     st.cache_data.clear()
 
 try:
-    density_df, tle_source, tle_line_count = _compute_density_cached()
+    density_df, tle_source, tle_lines_cached = _compute_density_cached()
+    tle_line_count = len(tle_lines_cached)
     tle_ok = True
 except Exception as e:
     st.error(f"TLE load failed: {e}")
     tle_ok = False
     density_df = None
+    tle_lines_cached = []
 
 if tle_ok:
     with status_col:
@@ -267,6 +277,19 @@ fig.update_layout(
     margin=dict(l=40, r=20, t=70, b=60),
 )
 st.plotly_chart(fig, use_container_width=True)
+
+st.divider()
+
+# ── Live orbital distribution ─────────────────────────────────────────────────
+st.subheader(f"{SYM_ORBIT} Live Orbital Distribution")
+st.caption(
+    "Real tracked-object positions propagated via SGP4 to right now. "
+    "Coloured by altitude-band risk tier from the map above. "
+    "Drag to rotate · scroll to zoom."
+)
+render_orbital_view(tle_lines_cached, risk_df)
+
+st.divider()
 
 # ── Data table ────────────────────────────────────────────────────────────────
 display_df = risk_df[[

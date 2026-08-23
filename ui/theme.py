@@ -7,7 +7,11 @@ Inject with:
 
 Design language:
   - Deep-space dark palette with cyan telemetry accent
-  - JetBrains Mono for all data readouts and labels
+  - Font system:
+      Orbitron      — H1 titles, metric values, stage card names (HUD drama)
+      Rajdhani      — H2/H3, labels, buttons, UI chrome (condensed, sharp)
+      Jura          — body text, captions, paragraphs (clean, readable)
+      IBM Plex Mono — true monospace for data readouts, code blocks, JSON
   - Themed SVG/Unicode symbols instead of emoji
   - Mission-board tier colours: alert-red / amber / muted-green
   - Scanline texture on cards for CRT / instrument-panel feel
@@ -61,7 +65,7 @@ SYM_CLEAR     = "⊘"   # null / clear
 PLOTLY_LAYOUT = dict(
     plot_bgcolor         = BG_PANEL,
     paper_bgcolor        = BG_MAIN,
-    font                 = dict(color=TEXT_MAIN, family="Rajdhani, Jura, system-ui, sans-serif"),
+    font                 = dict(color=TEXT_MAIN, family="IBM Plex Mono, Rajdhani, system-ui, sans-serif"),
     xaxis_gridcolor      = BORDER,
     xaxis_zerolinecolor  = BORDER,
     xaxis_color          = TEXT_MAIN,
@@ -82,10 +86,12 @@ def apply_theme() -> None:
 _CSS = """
 <style>
 /* ── Fonts ───────────────────────────────────────────────────────────────── */
-/* Orbitron — dramatic sci-fi HUD titles (H1 only, used sparingly)
-   Rajdhani — condensed, sharp, mission-control labels & subheadings
-   Jura     — clean, minimal futuristic body text                      */
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Jura:wght@300;400;500;600&display=swap');
+/* Orbitron      — dramatic sci-fi HUD titles (H1, metric values)
+   Rajdhani      — condensed, sharp, mission-control labels & subheadings
+   Jura          — clean, minimal futuristic body text
+   IBM Plex Mono — true monospace for data readouts, code blocks, JSON
+                   (IBM challenge tie-in; replaces Rajdhani on --mono) */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Jura:wght@300;400;500;600&family=IBM+Plex+Mono:wght@300;400;600&display=swap');
 
 /* ── CSS custom properties ───────────────────────────────────────────────── */
 :root {
@@ -101,12 +107,15 @@ _CSS = """
   --purple:    #7b5ea7;
   --text:      #d4e4f4;
   --muted:     #7a9ab8;
-  /* Font stack: Orbitron for big titles, Rajdhani for UI chrome,
-     Jura for readable body text */
+  /* Font stack:
+     Orbitron      → titles/HUD numbers
+     Rajdhani      → all UI chrome (labels, buttons, subheadings)
+     Jura          → body / reading text
+     IBM Plex Mono → true monospace (data readouts, code, JSON) */
   --font-title:  'Orbitron', 'Rajdhani', sans-serif;
   --font-ui:     'Rajdhani', 'Jura', system-ui, sans-serif;
   --font-body:   'Jura', 'Rajdhani', system-ui, sans-serif;
-  --mono:        'Rajdhani', Consolas, monospace;
+  --mono:        'IBM Plex Mono', 'Courier New', Consolas, monospace;
 }
 
 /* ── Root background ────────────────────────────────────────────────────── */
@@ -345,11 +354,11 @@ div[data-testid="stAlert"]:has(svg[data-testid*="info"]) {
 
 /* ── Code / JSON ────────────────────────────────────────────────────────── */
 pre, code, [data-testid="stJson"] {
-  font-family: 'Rajdhani', Consolas, monospace !important;
+  font-family: var(--mono) !important;
   background-color: #06090f !important;
   border: 1px solid var(--border) !important;
   border-radius: 3px;
-  font-size: 0.84rem !important;
+  font-size: 0.82rem !important;
   color: #b8d8f0 !important;
 }
 
