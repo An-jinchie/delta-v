@@ -27,7 +27,10 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from ai.granite import write_situation_report, granite_status
-from ui.theme import apply_theme, PLOTLY_LAYOUT, ACCENT_CYAN, ACCENT_AMBER, ACCENT_RED, ACCENT_PURPLE, BG_MAIN, BORDER, TEXT_MAIN
+from ui.theme import (apply_theme, PLOTLY_LAYOUT, ACCENT_CYAN, ACCENT_AMBER, ACCENT_RED, ACCENT_PURPLE,
+                      BG_MAIN, BORDER, TEXT_MAIN,
+                      SYM_GRID, SYM_INSPECT, SYM_ORBIT, SYM_INJECT, SYM_CLEAR, SYM_ONLINE, SYM_OFFLINE)
+from ui.starfield import inject_starfield
 from pipeline.map.density import compute_density
 from pipeline.map.risk_map import RiskDensityMap
 from pipeline.map.tle_fetcher import TLEFetcher
