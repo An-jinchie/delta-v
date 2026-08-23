@@ -151,46 +151,127 @@ def _build_meteor_css() -> str:
 _METEOR_CSS = _build_meteor_css()
 
 
+# NASA public-domain video URLs (ISS footage / orbital views — free use, no registration).
+# Rotated randomly so repeat visits see variety. All are NASA Johnson / HQ releases.
+# Sources: NASA Image and Video Library (images.nasa.gov), public domain.
+_BG_VIDEOS = [
+    # ISS time-lapse of Earth from orbit — city lights, aurora, orbital sunrise
+    "https://images-assets.nasa.gov/video/iss066e094560/iss066e094560~orig.mp4",
+    # Earth from ISS — atmospheric glow, Pacific Ocean, terminator line
+    "https://images-assets.nasa.gov/video/iss065e358686/iss065e358686~orig.mp4",
+    # Orbital sunrise sequence over Earth's limb
+    "https://images-assets.nasa.gov/video/iss064e031174/iss064e031174~orig.mp4",
+]
+
+
 def inject_starfield() -> None:
     """
     Inject the animated space background into the current Streamlit page.
+
+    Layer order (back to front):
+      1. NASA ISS orbital video — loops silently, play/pause button bottom-right
+      2. Dark overlay on the video for readability
+      3. SVG star field + nebulae + meteor CSS animations
+      4. Vignette ring
+      5. All Streamlit content (z-index 1+)
+
     Call this once, immediately after apply_theme().
     """
+    import random, hashlib
     meteors_html = "\n".join(
         f'<div class="meteor-{i}"></div>' for i in range(len(_METEORS))
     )
+    # Pick a video deterministically per session (hash of session id if available,
+    # else random) so the same visitor doesn't get a different video mid-session.
+    try:
+        import streamlit as _st
+        _sid = str(_st.runtime.scriptrunner.get_script_run_ctx().session_id)
+        video_url = _BG_VIDEOS[int(hashlib.md5(_sid.encode()).hexdigest(), 16) % len(_BG_VIDEOS)]
+    except Exception:
+        video_url = _BG_VIDEOS[0]
 
     html = f"""
 <style>
-  /* Fixed full-viewport background layer, behind all Streamlit content */
-  #dv-starfield {{
+  /* ── Background container ─────────────────────────────────────────────── */
+  #dv-bg {{
     position: fixed;
     inset: 0;
     z-index: 0;
     pointer-events: none;
     overflow: hidden;
+    /* Fallback gradient shown while video loads */
     background: radial-gradient(ellipse at 50% 30%, #0d1530 0%, #070b14 55%, #030507 100%);
   }}
 
-  #dv-starfield svg {{
-    width: 100%;
-    height: 100%;
+  /* ── Video layer ──────────────────────────────────────────────────────── */
+  #dv-video {{
     position: absolute;
     inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* Dark overlay: video at 35% opacity so stars/content pop through */
+    opacity: 0.35;
+    transition: opacity 0.6s ease;
+  }}
+  #dv-video.paused {{ opacity: 0.15; }}
+
+  /* ── Star field SVG on top of video ──────────────────────────────────── */
+  #dv-stars {{
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
   }}
 
-  /* Vignette ring */
+  /* ── Dark video overlay (separate from video opacity) ────────────────── */
+  #dv-overlay {{
+    position: absolute;
+    inset: 0;
+    background: rgba(4, 7, 16, 0.55);
+    pointer-events: none;
+  }}
+
+  /* ── Vignette ring ────────────────────────────────────────────────────── */
   #dv-vignette {{
     position: absolute;
     inset: 0;
     background: radial-gradient(ellipse at 50% 50%,
-      transparent 40%,
-      rgba(3,5,7,0.45) 75%,
-      rgba(3,5,7,0.85) 100%);
+      transparent 35%,
+      rgba(3,5,10,0.5) 70%,
+      rgba(2,4,8,0.9) 100%);
     pointer-events: none;
   }}
 
-  /* Twinkling stars — subtle scale pulse on a subset */
+  /* ── Play/Pause toggle ────────────────────────────────────────────────── */
+  #dv-playpause {{
+    position: fixed;
+    bottom: 1.1rem;
+    right: 5rem;          /* clear of Streamlit's manage-app button */
+    z-index: 9999;
+    pointer-events: all;
+    cursor: pointer;
+    background: rgba(8,12,26,0.75);
+    border: 1px solid rgba(0,212,255,0.35);
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(0,212,255,0.8);
+    font-size: 14px;
+    font-family: 'Rajdhani', monospace;
+    backdrop-filter: blur(6px);
+    transition: border-color 0.2s, color 0.2s;
+    user-select: none;
+  }}
+  #dv-playpause:hover {{
+    border-color: rgba(0,212,255,0.75);
+    color: #00d4ff;
+  }}
+
+  /* Twinkling stars */
   @keyframes twinkle {{
     0%, 100% {{ opacity: var(--base-op, 0.5); transform: scale(1); }}
     50%       {{ opacity: calc(var(--base-op, 0.5) * 1.7); transform: scale(1.35); }}
@@ -199,7 +280,7 @@ def inject_starfield() -> None:
 
   {_METEOR_CSS}
 
-  /* Ensure Streamlit's main content renders above the background */
+  /* Ensure all Streamlit content renders above the background */
   [data-testid="stAppViewContainer"] > div:first-child,
   [data-testid="stAppViewContainer"] > section,
   [data-testid="block-container"] {{
@@ -208,8 +289,13 @@ def inject_starfield() -> None:
   }}
 </style>
 
-<div id="dv-starfield">
-  <svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+<div id="dv-bg">
+  <video id="dv-video" autoplay loop muted playsinline
+         src="{video_url}"
+         onerror="this.style.display='none'">
+  </video>
+  <div id="dv-overlay"></div>
+  <svg id="dv-stars" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
     {_NEBULAE_SVG}
     {_STARS_SVG}
   </svg>
@@ -217,21 +303,49 @@ def inject_starfield() -> None:
   {meteors_html}
 </div>
 
+<!-- Play / pause toggle button — bottom right, like NASA Eyes -->
+<div id="dv-playpause" title="Toggle background video" onclick="
+  var v = document.getElementById('dv-video');
+  var b = document.getElementById('dv-playpause');
+  if (v) {{
+    if (v.paused) {{
+      v.play();
+      v.classList.remove('paused');
+      b.textContent = '⏸';
+    }} else {{
+      v.pause();
+      v.classList.add('paused');
+      b.textContent = '▶';
+    }}
+  }}
+">⏸</div>
+
 <script>
 (function() {{
-  // Add twinkle class + random timing to ~30% of stars for subtle animation
-  const svgStars = document.querySelectorAll('#dv-starfield circle');
+  // Twinkle animation on ~30% of stars
+  const svgStars = document.querySelectorAll('#dv-stars circle');
   svgStars.forEach(function(s, i) {{
     if (i % 3 === 0) {{
       s.classList.add('twinkle');
-      const dur = (2.5 + Math.random() * 3).toFixed(1);
+      const dur   = (2.5 + Math.random() * 3).toFixed(1);
       const delay = (Math.random() * 4).toFixed(1);
-      const baseOp = parseFloat(s.getAttribute('fill').match(/[\d.]+\)$/)?.[0] ?? '0.5');
+      const m = s.getAttribute('fill').match(/[\d.]+\)$/);
+      const baseOp = m ? parseFloat(m[0]) : 0.5;
       s.style.setProperty('--base-op', baseOp);
       s.style.setProperty('--twk-dur', dur + 's');
       s.style.animationDelay = delay + 's';
     }}
   }});
+
+  // If video fails to load (e.g. network restricted on Streamlit Cloud),
+  // hide the broken element silently — the star field is the fallback.
+  var vid = document.getElementById('dv-video');
+  if (vid) {{
+    vid.addEventListener('error', function() {{
+      vid.style.display = 'none';
+      document.getElementById('dv-playpause').style.display = 'none';
+    }});
+  }}
 }})();
 </script>
 """

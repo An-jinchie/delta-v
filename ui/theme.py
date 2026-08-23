@@ -61,7 +61,7 @@ SYM_CLEAR     = "⊘"   # null / clear
 PLOTLY_LAYOUT = dict(
     plot_bgcolor         = BG_PANEL,
     paper_bgcolor        = BG_MAIN,
-    font                 = dict(color=TEXT_MAIN, family="JetBrains Mono, Consolas, monospace"),
+    font                 = dict(color=TEXT_MAIN, family="Rajdhani, Jura, system-ui, sans-serif"),
     xaxis_gridcolor      = BORDER,
     xaxis_zerolinecolor  = BORDER,
     xaxis_color          = TEXT_MAIN,
@@ -82,7 +82,10 @@ def apply_theme() -> None:
 _CSS = """
 <style>
 /* ── Fonts ───────────────────────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Space+Grotesk:wght@300;400;500;600&display=swap');
+/* Orbitron — dramatic sci-fi HUD titles (H1 only, used sparingly)
+   Rajdhani — condensed, sharp, mission-control labels & subheadings
+   Jura     — clean, minimal futuristic body text                      */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Jura:wght@300;400;500;600&display=swap');
 
 /* ── CSS custom properties ───────────────────────────────────────────────── */
 :root {
@@ -96,10 +99,14 @@ _CSS = """
   --red:       #ff4b4b;
   --green:     #2a9d6a;
   --purple:    #7b5ea7;
-  --text:      #c8d8e8;
-  --muted:     #5a7a9a;
-  --mono:      'JetBrains Mono', Consolas, 'Courier New', monospace;
-  --sans:      'Space Grotesk', system-ui, sans-serif;
+  --text:      #d4e4f4;
+  --muted:     #7a9ab8;
+  /* Font stack: Orbitron for big titles, Rajdhani for UI chrome,
+     Jura for readable body text */
+  --font-title:  'Orbitron', 'Rajdhani', sans-serif;
+  --font-ui:     'Rajdhani', 'Jura', system-ui, sans-serif;
+  --font-body:   'Jura', 'Rajdhani', system-ui, sans-serif;
+  --mono:        'Rajdhani', Consolas, monospace;
 }
 
 /* ── Root background ────────────────────────────────────────────────────── */
@@ -117,57 +124,70 @@ html, body, [data-testid="stAppViewContainer"] {
   background: transparent !important;
 }
 
-/* ── Sidebar ────────────────────────────────────────────────────────────── */
+/* ── Sidebar — more opaque, distinct from main canvas ───────────────────── */
 [data-testid="stSidebar"] {
-  background-color: rgba(6, 9, 20, 0.92) !important;
-  border-right: 1px solid var(--border);
-  backdrop-filter: blur(8px);
+  background: linear-gradient(180deg,
+    rgba(5,8,18,0.97) 0%,
+    rgba(8,12,26,0.97) 60%,
+    rgba(6,10,22,0.97) 100%) !important;
+  border-right: 1px solid rgba(0,212,255,0.18);
+  backdrop-filter: blur(14px);
+  box-shadow: 2px 0 20px rgba(0,0,0,0.5);
 }
 
 [data-testid="stSidebar"] * { color: var(--text) !important; }
 
 /* ── Top bar ────────────────────────────────────────────────────────────── */
 [data-testid="stHeader"] {
-  background-color: rgba(6, 9, 20, 0.85) !important;
-  border-bottom: 1px solid var(--border);
-  backdrop-filter: blur(6px);
+  background-color: rgba(5, 8, 18, 0.92) !important;
+  border-bottom: 1px solid rgba(0,212,255,0.15);
+  backdrop-filter: blur(10px);
+}
+
+/* ── Main content area — semi-transparent backdrop for legibility ────────── */
+[data-testid="block-container"] > div {
+  background: rgba(8, 12, 24, 0.55) !important;
+  border-radius: 6px;
+  backdrop-filter: blur(4px);
 }
 
 /* ── Typography ─────────────────────────────────────────────────────────── */
 h1 {
-  font-family: var(--mono) !important;
+  font-family: var(--font-title) !important;
   color: var(--cyan) !important;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.10em;
   text-transform: uppercase;
-  font-weight: 600;
-  font-size: 1.6rem !important;
+  font-weight: 700;
+  font-size: 1.85rem !important;
   border-bottom: 1px solid var(--border);
   padding-bottom: 0.4em;
   margin-bottom: 0.6em;
-  /* Subtle cyan glow */
-  text-shadow: 0 0 18px rgba(0, 212, 255, 0.25);
+  text-shadow: 0 0 22px rgba(0, 212, 255, 0.35);
 }
 
 h2 {
-  font-family: var(--mono) !important;
-  color: #8ecfea !important;
-  letter-spacing: 0.03em;
-  font-size: 1.15rem !important;
-  font-weight: 500;
-}
-
-h3 {
-  font-family: var(--mono) !important;
-  color: #7ab8d8 !important;
-  letter-spacing: 0.02em;
-  font-size: 0.98rem !important;
-  font-weight: 400;
+  font-family: var(--font-ui) !important;
+  color: #a0d4f0 !important;
+  letter-spacing: 0.06em;
+  font-size: 1.25rem !important;
+  font-weight: 600;
   text-transform: uppercase;
 }
 
-p, li, div {
-  font-family: var(--sans);
-  line-height: 1.65;
+h3 {
+  font-family: var(--font-ui) !important;
+  color: #88bcd8 !important;
+  letter-spacing: 0.05em;
+  font-size: 1.05rem !important;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+p, li {
+  font-family: var(--font-body);
+  font-size: 0.97rem;
+  line-height: 1.7;
+  color: var(--text);
 }
 
 /* ── Metric cards ───────────────────────────────────────────────────────── */
@@ -198,23 +218,23 @@ p, li, div {
 
 [data-testid="stMetricLabel"] {
   color: var(--muted) !important;
-  font-family: var(--mono) !important;
-  font-size: 0.68rem !important;
+  font-family: var(--font-ui) !important;
+  font-size: 0.80rem !important;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 
 [data-testid="stMetricValue"] {
   color: var(--cyan) !important;
-  font-family: var(--mono) !important;
-  font-size: 1.55rem !important;
-  font-weight: 600;
-  text-shadow: 0 0 12px rgba(0,212,255,0.3);
+  font-family: 'Orbitron', var(--font-ui) !important;
+  font-size: 1.6rem !important;
+  font-weight: 700;
+  text-shadow: 0 0 14px rgba(0,212,255,0.35);
 }
 
 [data-testid="stMetricDelta"] {
-  font-family: var(--mono) !important;
-  font-size: 0.7rem !important;
+  font-family: var(--font-ui) !important;
+  font-size: 0.78rem !important;
 }
 
 /* ── DataFrames ─────────────────────────────────────────────────────────── */
@@ -224,8 +244,8 @@ p, li, div {
 }
 
 [data-testid="stDataFrame"] table {
-  font-family: var(--mono) !important;
-  font-size: 0.78rem !important;
+  font-family: var(--font-ui) !important;
+  font-size: 0.82rem !important;
 }
 
 /* ── Expanders ──────────────────────────────────────────────────────────── */
@@ -238,9 +258,9 @@ p, li, div {
 
 [data-testid="stExpander"] summary {
   color: var(--muted) !important;
-  font-family: var(--mono) !important;
-  font-size: 0.78rem !important;
-  letter-spacing: 0.04em;
+  font-family: var(--font-ui) !important;
+  font-size: 0.83rem !important;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
@@ -250,10 +270,11 @@ p, li, div {
 
 /* ── Buttons ────────────────────────────────────────────────────────────── */
 [data-testid="stButton"] > button {
-  font-family: var(--mono) !important;
-  letter-spacing: 0.07em;
+  font-family: var(--font-ui) !important;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  font-size: 0.74rem !important;
+  font-size: 0.82rem !important;
+  font-weight: 600;
   border-radius: 3px !important;
   transition: all 0.15s ease;
 }
@@ -284,10 +305,11 @@ p, li, div {
 
 /* ── Download buttons ───────────────────────────────────────────────────── */
 [data-testid="stDownloadButton"] > button {
-  font-family: var(--mono) !important;
-  letter-spacing: 0.06em;
+  font-family: var(--font-ui) !important;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
-  font-size: 0.74rem !important;
+  font-size: 0.82rem !important;
+  font-weight: 600;
   border-radius: 3px !important;
   background: var(--bg-card) !important;
   border: 1px solid var(--border) !important;
@@ -303,8 +325,8 @@ p, li, div {
 /* ── Alert / info / warning / success boxes ─────────────────────────────── */
 [data-testid="stAlert"] {
   border-radius: 3px !important;
-  font-family: var(--sans) !important;
-  font-size: 0.84rem !important;
+  font-family: var(--font-body) !important;
+  font-size: 0.90rem !important;
   border-left-width: 3px !important;
   backdrop-filter: blur(4px);
 }
@@ -318,12 +340,12 @@ div[data-testid="stAlert"]:has(svg[data-testid*="info"]) {
 
 /* ── Code / JSON ────────────────────────────────────────────────────────── */
 pre, code, [data-testid="stJson"] {
-  font-family: var(--mono) !important;
+  font-family: 'Rajdhani', Consolas, monospace !important;
   background-color: #06090f !important;
   border: 1px solid var(--border) !important;
   border-radius: 3px;
-  font-size: 0.78rem !important;
-  color: #a8c8e8 !important;
+  font-size: 0.84rem !important;
+  color: #b8d8f0 !important;
 }
 
 /* ── Form labels ────────────────────────────────────────────────────────── */
@@ -332,19 +354,20 @@ pre, code, [data-testid="stJson"] {
 [data-testid="stSlider"] label,
 [data-testid="stTextInput"] label,
 [data-testid="stRadio"] label {
-  font-family: var(--mono) !important;
-  font-size: 0.72rem !important;
+  font-family: var(--font-ui) !important;
+  font-size: 0.82rem !important;
   color: var(--muted) !important;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  font-weight: 500;
 }
 
 /* ── Captions ───────────────────────────────────────────────────────────── */
 [data-testid="stCaptionContainer"],
 small {
   color: var(--muted) !important;
-  font-size: 0.73rem !important;
-  font-family: var(--sans) !important;
+  font-size: 0.82rem !important;
+  font-family: var(--font-body) !important;
 }
 
 /* ── Dividers ───────────────────────────────────────────────────────────── */
@@ -356,13 +379,14 @@ hr {
 /* ── Blockquote (problem statement) ─────────────────────────────────────── */
 blockquote {
   border-left: 3px solid var(--cyan) !important;
-  background: rgba(0,212,255,0.04) !important;
-  padding: 0.75rem 1rem !important;
+  background: rgba(0,212,255,0.05) !important;
+  padding: 0.85rem 1.1rem !important;
   margin: 0.5rem 0 1rem !important;
   border-radius: 0 3px 3px 0;
   color: var(--text) !important;
-  font-family: var(--sans) !important;
-  font-size: 0.9rem;
+  font-family: var(--font-body) !important;
+  font-size: 1.0rem;
+  line-height: 1.7;
 }
 
 /* ── Toast notifications ─────────────────────────────────────────────────── */
@@ -370,8 +394,8 @@ blockquote {
   background: rgba(15,22,41,0.95) !important;
   border: 1px solid var(--border) !important;
   color: var(--text) !important;
-  font-family: var(--mono) !important;
-  font-size: 0.78rem !important;
+  font-family: var(--font-ui) !important;
+  font-size: 0.84rem !important;
   backdrop-filter: blur(8px);
 }
 
@@ -439,38 +463,39 @@ blockquote {
 }
 
 .stage-card .stage-num {
-  font-family: var(--mono);
-  font-size: 0.65rem;
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
   color: var(--cyan);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   margin-bottom: 0.3rem;
-  opacity: 0.7;
+  opacity: 0.75;
 }
 
 .stage-card .stage-title {
-  font-family: var(--mono);
-  font-size: 1.0rem;
+  font-family: 'Orbitron', var(--font-ui);
+  font-size: 1.05rem;
   color: var(--cyan);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  margin-bottom: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.65rem;
+  text-shadow: 0 0 10px rgba(0,212,255,0.25);
 }
 
 .stage-card .stage-body {
-  font-family: var(--sans);
-  font-size: 0.84rem;
+  font-family: var(--font-body);
+  font-size: 0.92rem;
   color: var(--text);
-  line-height: 1.6;
+  line-height: 1.65;
 }
 
 /* ── Pipeline arrow ──────────────────────────────────────────────────────── */
 .pipe-arrow {
-  font-size: 1.4rem;
+  font-size: 1.6rem;
   color: var(--border-hi);
   text-align: center;
   margin-top: 2.5rem;
-  font-family: var(--mono);
+  font-family: var(--font-ui);
 }
 
 /* ── Orbital ring decoration on page titles ─────────────────────────────── */

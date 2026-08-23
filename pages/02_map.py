@@ -146,9 +146,9 @@ with det_col1:
     n_detections = st.slider("Number of synthetic detections", 0, 50, 10)
     dominant_band = st.selectbox(
         "Concentrate in band",
-        ["400-600", "600-800", "800-1000", "200-400", "1000-1200",
-         "1200-1400", "1400-1600", "1600-2000"],
-        index=0,
+        ["200-400", "400-600", "600-800", "800-1000",
+         "1000-1200", "1200-1400", "1400-1600", "1600-2000"],
+        index=1,   # default: 400-600 (most active LEO band)
         help="Most detections will land in this band to show the map updating.",
     )
     det_size = st.selectbox("Detection size class", ["small", "medium", "large"], index=1)
