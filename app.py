@@ -78,7 +78,7 @@ with st.sidebar:
 
 # ── Home page header ──────────────────────────────────────────────────────────
 st.markdown(
-    "<h1 style='margin-top:0.5rem'>△ DELTA-V</h1>",
+    "<h1 style='margin-top:0.5rem;border-bottom:none;padding-bottom:0'>△ DELTA-V</h1>",
     unsafe_allow_html=True,
 )
 st.markdown(

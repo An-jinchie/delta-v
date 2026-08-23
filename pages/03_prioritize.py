@@ -107,8 +107,10 @@ cfg_col1, cfg_col2, cfg_col3 = st.columns(3)
 with cfg_col1:
     h_ref = st.number_input(
         "Reference orbit altitude (km)",
-        min_value=200.0, max_value=800.0, value=float(H_REF_KM_DEFAULT), step=10.0,
-        help="Departure orbit altitude. Default: 400 km (near-ISS).",
+        min_value=200.0, max_value=2000.0, value=float(H_REF_KM_DEFAULT), step=50.0,
+        help="Departure orbit altitude for the notional chase vehicle. "
+             "Default 400 km (near-ISS). Min 200 km — below this, atmospheric drag "
+             "removes debris within days. Max 2000 km — upper LEO boundary.",
     )
 
 with cfg_col2:

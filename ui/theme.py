@@ -135,7 +135,12 @@ html, body, [data-testid="stAppViewContainer"] {
   box-shadow: 2px 0 20px rgba(0,0,0,0.5);
 }
 
-[data-testid="stSidebar"] * { color: var(--text) !important; }
+/* Sidebar text — plain white for maximum legibility */
+[data-testid="stSidebar"] * { color: #ffffff !important; }
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] a,
+[data-testid="stSidebar"] li { color: #ffffff !important; }
 
 /* ── Top bar ────────────────────────────────────────────────────────────── */
 [data-testid="stHeader"] {
