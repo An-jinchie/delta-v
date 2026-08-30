@@ -116,7 +116,6 @@ st.markdown("""
       ML refines on top of those physical estimates — math is always primary.
     </div>
   </div>
-  <div class="pipe-arrow">⟶</div>
   <div class="stage-card">
     <div class="stage-num">Stage 02</div>
     <div class="stage-title">⊞ Map</div>
@@ -126,7 +125,6 @@ st.markdown("""
       Updated with each new detection batch. Not a Bayesian filter.
     </div>
   </div>
-  <div class="pipe-arrow">⟶</div>
   <div class="stage-card">
     <div class="stage-num">Stage 03</div>
     <div class="stage-title">△ Prioritize</div>
