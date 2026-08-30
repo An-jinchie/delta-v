@@ -7,17 +7,24 @@
 [![Tests](https://img.shields.io/badge/tests-142%20passing-brightgreen.svg)](#running-tests)
 [![Live Demo](https://img.shields.io/badge/live-demo-red.svg)](https://delta-v-ksn33avrrgai9gbnidlstb.streamlit.app/)
 
+**Live app:** https://delta-v-ksn33avrrgai9gbnidlstb.streamlit.app/
+**GitHub:** https://github.com/An-jinchie/delta-v
+
 ---
 
-## The Problem
+## Problem Statement
 
 Small space debris (1 mm–10 cm) is too small for the U.S. Space Surveillance Network to individually track, yet capable of mission-ending damage at orbital velocities. **Less than 1% of debris in this danger category is currently tracked.**
 
 Operators who most need this picture — university cubesat teams, early-stage space startups, independent researchers — are locked out of official conjunction data, which requires being a registered satellite owner/operator with an active cataloged object. And even where risk data exists, a score alone is not a decision: it doesn't say what it would cost to act on, or which threat deserves attention first.
 
+**Delta-V addresses all three gaps in one pipeline:** characterize the debris, map the regional risk, and cost each region with real orbital mechanics — so an operator gets a ranked, actionable list with a delta-v price tag on every entry.
+
 ---
 
-## Pipeline
+## Solution Description
+
+Delta-V is a three-stage physics-grounded pipeline:
 
 ```
 Light Curve (brightness vs. time)
@@ -63,6 +70,97 @@ IBM Granite (watsonx.ai)
   (Granite never produces or guesses numbers)
 ```
 
+**Key design invariants enforced throughout:**
+- Math is always deterministic, computed in code. No model guesses a number.
+- Every output is inspectable — click any result to see the formula and constants behind it.
+- Delta-v costing is region/altitude-band level only, not per individual object (Stage 1 gives no state vector).
+- The risk map is a grid-based accumulator, not a Bayesian filter — documented plainly in code, UI, and here.
+
+---
+
+## AI Approach and Architecture
+
+### Where AI is used — and where it is deliberately not used
+
+| Component | AI? | Why |
+|---|---|---|
+| Fourier decomposition + amplitude estimation | ❌ No | Deterministic physics math — always primary |
+| RandomForest size/shape classifier | ✅ Yes (secondary) | Refines on top of 18 physically-grounded features extracted by the math |
+| Grid-based risk-density map | ❌ No | Weighted accumulator — no model involved |
+| Hohmann + plane-change delta-v | ❌ No | Standard orbital mechanics constants |
+| Plain-language analyst briefs | ✅ Yes (IBM Granite) | Translates computed numbers to English — never generates numbers |
+
+### IBM Granite integration
+
+**Model:** `ibm/granite-3-3-8b-instruct` via watsonx.ai
+
+Granite is used in exactly **three places**, all identical in structure: the pipeline computes a result deterministically, structures the numbers into a DATA BLOCK, and passes it to Granite with explicit instructions to use only those numbers:
+
+1. **Stage 1 — Characterization brief:** Receives rotation rate (Hz), amplitude, size estimate (cm), shape hint, SNR, top Fourier coefficients. Returns a 2–3 sentence analyst description.
+2. **Stage 2 — Situation report:** Receives composite risk densities, object counts, and detection counts per altitude band. Returns a 3–4 sentence LEO risk landscape summary.
+3. **Stage 3 — Mission brief:** Receives tier assignments, priority scores, and delta-v costs per band. Returns a mission-brief recommendation referencing specific delta-v figures from the data block.
+
+**Prompt constraint enforced in all three:** `You must use ONLY the numbers provided in the DATA BLOCK below. Do not invent, estimate, or add values not present in the data.`
+
+**Fallback behaviour:** If `WATSONX_API_KEY` is not set, or any API call fails, each function returns pre-written template text built from the same structured data — substantive analyst text, not error messages. The app runs fully without credentials.
+
+### ML pipeline (Stage 1)
+
+The RandomForest classifier receives an **18-feature vector** extracted from the Fourier inversion result — not the raw light curve. Every feature is physically grounded:
+
+- FFT dominant frequency, power ratio, second-peak ratio, bandwidth
+- Amplitude, peak-to-trough ratio, periodicity score
+- Statistical moments (mean, std, skew, kurtosis, RMS)
+- SNR estimate, zero-crossing rate, envelope slope
+- Top-3 Fourier coefficient magnitudes
+
+The classifier predicts `size_class` (small/medium/large) and `shape` (flat_plate/tumbling/cylinder/sphere). It is secondary to the deterministic math — if the model is not loaded, the app falls back to inversion-only estimates.
+
+**Validated accuracy (synthetic held-out test set, n=400):**
+- Size: **83.8%** (target ≥ 80% — pass)
+- Shape: **95.2%** (target ≥ 80% — pass)
+
+---
+
+## Selected Challenge Theme
+
+**Sustainability / Climate & Environment** — specifically the space environment.
+
+Delta-V addresses the growing LEO debris problem from the perspective of operators who currently have no accessible, actionable risk intelligence. The app provides open, free, no-registration-required debris risk assessment using public data (CelesTrak, Mini-MegaTORTORA), making this capability accessible to university cubesat teams and independent researchers for the first time.
+
+---
+
+## How IBM Bob Was Used
+
+IBM Bob (the AI assistant) was used throughout the entire development lifecycle of Delta-V:
+
+**Architecture and design decisions**
+- Scoping the three-stage pipeline structure and enforcing the key invariants (math primary, AI secondary; region-level delta-v only; no Bayesian overclaiming)
+- Designing the prompt architecture for Granite to ensure it never generates numbers — the DATA BLOCK pattern and the explicit constraint language in all three prompts
+- Deciding the fallback text strategy: substantive analyst text vs. error messages
+
+**Implementation**
+- Full implementation of all pipeline modules: [`inversion.py`](pipeline/characterize/inversion.py), [`density.py`](pipeline/map/density.py), [`risk_map.py`](pipeline/map/risk_map.py), [`scorer.py`](pipeline/prioritize/scorer.py)
+- All three Granite prompt functions in [`granite.py`](ai/granite.py) with fallback text
+- The complete Streamlit UI across all four pages
+- The 3D orbital visualization in [`orbital_view.py`](ui/orbital_view.py) using SGP4-propagated TLE positions
+- The space-ops visual theme system in [`ui/theme.py`](ui/theme.py) (Orbitron/Rajdhani/IBM Plex Mono fonts, design tokens, responsive CSS)
+- The animated star field and video background in [`ui/starfield.py`](ui/starfield.py)
+
+**Testing and validation**
+- All 142 unit tests across 7 test files
+- MMT validation script and reframing of the "no small debris in public archives" result as a gap-confirmation finding rather than a limitation
+
+**Debugging and fixes**
+- Fixing the Plotly `TypeError` from duplicate kwargs in `PLOTLY_LAYOUT`
+- Fixing the video toggle button (Streamlit's HTML sanitizer strips inline `onclick` — moved to a script-block event listener with DOM-ready retry loop)
+- Fixing pipeline arrow alignment (replaced fixed `margin-top` hack with flexbox `align-items: center`)
+- CelesTrak 403 fallback handling in Streamlit Cloud environments
+
+**Documentation**
+- This README, including all submission-required sections
+- Inline module docstrings establishing scope constraints (e.g., `THIS IS NOT A BAYESIAN FILTER`, `THIS IS REGION-LEVEL COSTING ONLY`)
+
 ---
 
 ## Scope (Important)
@@ -93,28 +191,14 @@ It is a grid-based accumulator weighted by recency and detection confidence. Thi
 
 **Real MMT light curves — and what the search for small-debris data found:**
 
-The pipeline was run against all publicly accessible light curves in the Mini-MegaTORTORA archive. The result is a finding in its own right, not just a limitation:
+The pipeline was run against all publicly accessible light curves in the Mini-MegaTORTORA archive. The result is a finding in its own right:
 
-**Every accessible object in the public MMT archive is a large, actively-catalogued satellite** (Starlink, OneWeb, Kuiper, Qianfan, unclassified Chinese platforms — 1–20 m class objects with NORAD catalog IDs). Not one light curve from an untracked 1–10 cm debris fragment exists in the public record. This is a direct empirical confirmation of the gap Delta-V addresses: the target population is invisible to public observation archives precisely because it is untracked. There is no public ground-truth dataset to validate against because that dataset would require the infrastructure Delta-V is designed to help build.
+**Every accessible object in the public MMT archive is a large, actively-catalogued satellite** (Starlink, OneWeb, Kuiper, Qianfan, unclassified Chinese platforms — 1–20 m class objects with NORAD catalog IDs). Not one light curve from an untracked 1–10 cm debris fragment exists in the public record. This is a direct empirical confirmation of the gap Delta-V addresses: the target population is invisible to public observation archives precisely because it is untracked.
 
 The inversion pipeline behaves correctly on these objects:
 - All 8 passes return an FFT peak at the minimum resolvable frequency (0.0195 Hz = 51.2 s), correctly identifying that the objects' rotation periods exceed the 51-second observation window — not an error, a limit correctly reported
 - The amplitude heuristic classifies all 8 as "large" class, consistent with their known sizes (1–20 m)
 - The pipeline ran on real telescope data without errors and produced physically consistent outputs
-
-**Accuracy on the target population (small untracked debris, 1–10 cm):** Cannot be measured from public data — the target population is, by definition, untracked and unarchived. Accuracy figures (83.8% size / 95.2% shape) are reported on physics-grounded synthetic data, calibrated to the physical properties of small debris. See `data/validation/validation_report.txt` for the full per-curve analysis.
-
----
-
-## IBM Technology
-
-**IBM Granite (`ibm/granite-3-3-8b-instruct`)** via watsonx.ai is used in exactly three places:
-
-1. **Characterize** — Translates inversion + ML results into a 2–3 sentence analyst brief
-2. **Map** — Writes a situation report on the current regional risk landscape
-3. **Prioritize** — Writes a mission-brief recommendation for top-tier bands including delta-v context
-
-**Granite never produces or guesses numbers.** Every risk score, delta-v figure, and priority ranking is computed deterministically by the pipeline. Granite receives only the computed numbers in its prompt and translates them into plain English. If no credentials are set, the app falls back to substantive template text built from the same computed data — not error messages.
 
 ---
 
@@ -133,7 +217,7 @@ python train.py
 streamlit run app.py
 ```
 
-**Live demo:** [https://delta-v-ksn33avrrgai9gbnidlstb.streamlit.app/](https://delta-v-ksn33avrrgai9gbnidlstb.streamlit.app/)
+**Live demo:** https://delta-v-ksn33avrrgai9gbnidlstb.streamlit.app/
 
 The app runs fully without any API keys or network access. The IBM Granite integration falls back to template text; TLE data falls back to the committed synthetic snapshot.
 
@@ -158,14 +242,21 @@ CelesTrak is queried automatically. If DNS fails (common in sandboxed environmen
 python scripts/generate_tle_fallback.py   # regenerate the fallback snapshot
 ```
 
+### Running tests
+
+```bash
+python -m pytest tests/ -v
+# 142 tests across 7 files — generator, inversion, features, density, risk_map, scorer, tle_staleness
+```
+
 ### Validation
 
 ```bash
 # Run MMT validation (requires network access to mmt9.ru or local data in data/validation/)
 python validate_mmtortora.py
 
-# Run all unit tests
-python -m pytest tests/ -v
+# End-to-end smoke test
+python scripts/smoke_test_pipeline.py
 ```
 
 ---
@@ -177,7 +268,7 @@ delta-v/
 ├── app.py                          ← Streamlit entry + home dashboard
 ├── pages/
 │   ├── 01_characterize.py          ← Stage 1 UI (light curve → size/shape/rotation)
-│   ├── 02_map.py                   ← Stage 2 UI (risk-density map + situation report)
+│   ├── 02_map.py                   ← Stage 2 UI (risk-density map + 3D orbital view)
 │   └── 03_prioritize.py            ← Stage 3 UI (delta-v costed tiers + export)
 ├── pipeline/
 │   ├── characterize/
@@ -193,11 +284,18 @@ delta-v/
 │       └── scorer.py               ← Hohmann delta-v + severity + tiers + export
 ├── ai/
 │   └── granite.py                  ← Granite client + 3 prompt functions + fallback
+├── ui/
+│   ├── theme.py                    ← Palette, fonts, CSS, Plotly layout constants
+│   ├── starfield.py                ← Animated star field + NASA ISS video background
+│   └── orbital_view.py             ← Live 3D SGP4-propagated orbital distribution viz
 ├── data/
 │   ├── tle_snapshot_fallback.csv   ← 426 synthetic TLEs, all LEO bands, fresh epoch
-│   ├── models/                     ← Trained RandomForest (gitignored after train.py)
-│   └── validation/                 ← MMT validation output (populated by validate_mmtortora.py)
-├── tests/                          ← 131 passing unit tests
+│   ├── models/                     ← Trained RandomForest (auto-trains on first run)
+│   └── validation/                 ← MMT validation output
+├── landing/
+│   ├── index.html                  ← Static landing page (deploy to Vercel separately)
+│   └── vercel.json                 ← Vercel routing config for landing page
+├── tests/                          ← 142 unit tests, 7 files
 ├── scripts/
 │   ├── generate_tle_fallback.py    ← Regenerate TLE snapshot
 │   └── smoke_test_pipeline.py      ← End-to-end smoke test
@@ -206,7 +304,7 @@ delta-v/
 ├── config.py                       ← get_config(), granite_available()
 ├── requirements.txt
 ├── .env.example
-└── .streamlit/config.toml          ← Streamlit theme + deploy config
+└── .streamlit/config.toml          ← Streamlit dark theme + deploy config
 ```
 
 ---
