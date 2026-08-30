@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Delta-V — Space Debris Risk Intelligence</title>
+  <meta name="description" content="Physics-grounded space debris characterization, risk mapping, and delta-v-costed prioritization for LEO. Free. No login required." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;900&family=Rajdhani:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset ──────────────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Design tokens — match Streamlit app exactly ────────────────────────── */
+    :root {
+      --bg:         #0a0e1a;
+      --bg-panel:   #0f1629;
+      --bg-card:    #111827;
+      --border:     #1e2d4a;
+      --border-hi:  #2a4a6a;
+      --cyan:       #00d4ff;
+      --amber:      #f5a623;
+      --red:        #ff4b4b;
+      --green:      #2a9d6a;
+      --purple:     #7b5ea7;
+      --text:       #c8d8e8;
+      --muted:      #5a7a9a;
+
+      /* Fluid type scale */
+      --fs-xs:   clamp(0.6rem,  1.2vw, 0.72rem);
+      --fs-sm:   clamp(0.78rem, 1.5vw, 0.9rem);
+      --fs-base: clamp(0.9rem,  1.8vw, 1.05rem);
+      --fs-lg:   clamp(1rem,    2.2vw, 1.2rem);
+      --fs-xl:   clamp(1.25rem, 3vw,   1.8rem);
+      --fs-hero: clamp(2.8rem,  9vw,   6rem);
+
+      /* Spacing */
+      --gap-sm:  clamp(0.5rem,  2vw, 1rem);
+      --gap-md:  clamp(1rem,    3vw, 2rem);
+      --gap-lg:  clamp(2rem,    5vw, 4rem);
+      --pad-x:   clamp(1rem,    5vw, 2.5rem);
+    }
+
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Rajdhani', system-ui, sans-serif;
+      font-size: var(--fs-base);
+      line-height: 1.65;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    img, video, svg { display: block; max-width: 100%; }
+    a { color: inherit; }
+
+    /* ── Star field ──────────────────────────────────────────────────────────── */
+    #stars {
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 0;
+      overflow: hidden;
+    }
+    .star {
+      position: absolute; border-radius: 50%; background: #fff;
+      animation: twinkle var(--d, 3s) ease-in-out infinite;
+      opacity: var(--o, 0.4);
+    }
+    @keyframes twinkle {
+      0%, 100% { opacity: var(--o, 0.4); transform: scale(1); }
+      50%       { opacity: calc(var(--o, 0.4) * 0.2); transform: scale(0.6); }
+    }
+
+    /* ── Page wrapper ────────────────────────────────────────────────────────── */
+    .page { position: relative; z-index: 1; }
+
+    /* ── Nav ─────────────────────────────────────────────────────────────────── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 0.5rem;
+      padding: 0.7rem var(--pad-x);
+      background: rgba(10, 14, 26, 0.9);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-family: 'Orbitron', monospace;
+      font-size: var(--fs-lg); font-weight: 700;
+      color: var(--cyan); letter-spacing: 0.1em;
+      text-decoration: none; white-space: nowrap;
+    }
+    .nav-logo span { color: var(--text); font-weight: 400; }
+    .nav-links {
+      display: flex; align-items: center; gap: var(--gap-sm);
+      flex-wrap: wrap;
+    }
+    .nav-link {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: var(--fs-xs); letter-spacing: 0.06em;
+      color: var(--muted); text-decoration: none;
+      white-space: nowrap; padding: 0.25rem 0;
+    }
+    .nav-link:hover { color: var(--cyan); }
+    .nav-cta {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: var(--fs-xs); font-weight: 500;
+      color: var(--bg); background: var(--cyan);
+      padding: 0.45rem 1.1rem; border-radius: 3px;
+      text-decoration: none; letter-spacing: 0.05em;
+      text-transform: uppercase; white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .nav-cta:hover { background: #33ddff; }
+
+    /* ── Section wrapper ─────────────────────────────────────────────────────── */
+    .wrap {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding-left: var(--pad-x);
+      padding-right: var(--pad-x);
+    }
+
+    /* ── Hero ────────────────────────────────────────────────────────────────── */
+    .hero {
+      min-height: 90vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center;
+      padding: var(--gap-lg) var(--pad-x) var(--gap-md);
+    }
+    .eyebrow {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: var(--fs-xs); letter-spacing: 0.18em;
+      color: var(--muted); text-transform: uppercase;
+      margin-bottom: 1.2rem;
+    }
+    .eyebrow span { color: var(--cyan); }
+    .hero-title {
+      font-family: 'Orbitron', monospace;
+      font-size: var(--fs-hero);
+      font-weight: 900; line-height: 1;
+      color: var(--text); letter-spacing: 0.04em;
+      margin-bottom: 0.3rem;
+    }
+    .hero-title .delta { color: var(--cyan); }
+    .hero-sub {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: var(--fs-xs); letter-spacing: 0.08em;
+      color: #8ecfea; text-transform: uppercase;
+      margin-bottom: 2rem;
+    }
+    .hero-problem {
+      max-width: 660px; width: 100%;
+      font-size: var(--fs-base); color: var(--text); line-height: 1.75;
+      border-left: 3px solid var(--cyan);
+      background: rgba(0,212,255,0.04);
+      padding: 1rem 1.25rem;
+      border-radius: 0 4px 4px 0;
+      text-align: left;
+      margin-bottom: 2rem;
+    }
+    .hero-problem strong { color: var(--cyan); }
+    .cta-row {
+      display: flex; gap: var(--gap-sm);
+      flex-wrap: wrap; justify-content: center;
+    }
+    .btn-primary {
+      font-family: 'Orbitron', monospace;
+      font-size: var(--fs-xs); font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--bg); background: var(--cyan);
+      padding: 0.8rem 1.75rem; border-radius: 3px;
+      text-decoration: none; white-space: nowrap;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn-primary:hover { background: #33ddff; transform: translateY(-1px); }
+    .btn-secondary {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: var(--fs-xs); letter-spacing: 0.06em;
+      color: var(--cyan); border: 1px solid var(--cyan);
+      padding: 0.8rem 1.5rem; border-radius: 3px;
+      text-decoration: none; white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .btn-secondary:hover { background: rgba(0,212,255,0.08); }
+
+    /* ── Stat strip ──────────────────────────────────────────────────────────── */
+    .stat-strip {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-panel);
+    }
+    .stat-inner {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      max-width: 1080px; margin: 0 auto;
+    }
+    .stat {
+      padding: 1.4rem 1rem; text-align: center;
+      border-right: 1px solid var(--border);
+    }
+    .stat:last-child { border-right: none; }
+    .stat-val {
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(1.4rem, 4vw, 2rem);
+      font-weight: 700; color: var(--cyan); line-height: 1;
+      margin-bottom: 0.3rem;
+    }
+    .stat-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: var(--fs-xs); letter-spacing: 0.08em;
+      color: var(--muted); text-transform: uppercase;
+    }
+
+    /* ── Generic section ─────────────────────────────────────────────────────── */
+    .section { padding: var(--gap-lg) 0; }
+    .section-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: var(--fs-xs); letter-spacing: 0.18em;
+      color: var(--cyan); text-transform: uppercase; margin-bottom: 0.4rem;
+    }
+    .section-title {
+      font-family: 'Orbitron', monospace;
+      font-size: var(--fs-xl); font-weight: 700;
+      color: var(--text); line-height: 1.2;
+      margin-bottom: 0.8rem;
+    }
+    .section-body {
+      font-size: var(--fs-base); color: var(--muted);
+      max-width: 600px; line-height: 1.7; margin-bottom: 2.5rem;
+    }
+
+    /* ── Pipeline cards ──────────────────────────────────────────────────────── */
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    /* Collapse to single column on small screens */
+    @media (max-width: 680px) {
+      .pipeline { grid-template-columns: 1fr; }
+    }
+    .p-card {
+      background: var(--bg-card);
+      padding: clamp(1.25rem, 3vw, 1.75rem);
+      position: relative; overflow: hidden;
+      transition: background 0.2s;
+    }
+    .p-card:hover { background: #161e30; }
+    .p-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: var(--card-col, var(--cyan));
+    }
+    .p-num {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: var(--fs-xs); letter-spacing: 0.16em;
+      color: var(--muted); text-transform: uppercase; margin-bottom: 0.5rem;
+    }
+    .p-icon {
+      font-size: 1.4rem; color: var(--card-col, var(--cyan));
+      margin-bottom: 0.4rem;
+    }
+    .p-title {
+      font-family: 'Orbitron', monospace;
+      font-size: var(--fs-sm); font-weight: 700;
+      color: var(--text); margin-bottom: 0.65rem;
+      letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .p-body {
+      font-size: var(--fs-sm); color: var(--muted); line-height: 1.65;
+    }
+    .p-body strong { color: var(--text); }
+    .p-tag {
+      display: inline-block; margin-top: 1rem;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: var(--fs-xs); letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--card-col, var(--cyan));
+      border: 1px solid var(--card-col, var(--cyan));
+      padding: 0.18rem 0.5rem; border-radius: 2px; opacity: 0.75;
+    }
+
+    /* ── Principles ──────────────────────────────────────────────────────────── */
+    .principles {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+    .prin {
+      background: var(--bg-card);
+      border: 1px solid var(--border); border-radius: 4px;
+      padding: clamp(1rem, 2.5vw, 1.5rem);
+    }
+    .prin-icon {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 1.1rem; color: var(--cyan); margin-bottom: 0.7rem;
+    }
+    .prin-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: var(--fs-base); font-weight: 600;
+      color: var(--text); margin-bottom: 0.35rem;
+    }
+    .prin-body { font-size: var(--fs-sm); color: var(--muted); line-height: 1.6; }
+
+    /* ── Data note ───────────────────────────────────────────────────────────── */
+    .data-note {
+      background: rgba(0,212,255,0.04);
+      border: 1px solid rgba(0,212,255,0.2);
+      border-left: 3px solid var(--cyan);
+      border-radius: 0 4px 4px 0;
+      padding: 1.1rem 1.4rem;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: var(--fs-sm); color: #8ecfea; line-height: 1.75;
+    }
+    .data-note strong { color: var(--text); }
+
+    /* ── IBM badge strip ─────────────────────────────────────────────────────── */
+    .ibm-strip {
+      background: var(--bg-panel);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: var(--gap-md) var(--pad-x);
+      text-align: center;
+    }
+    .ibm-inner { max-width: 700px; margin: 0 auto; }
+    .ibm-badge {
+      display: inline-block;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: var(--fs-xs); letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--cyan); border: 1px solid var(--cyan);
+      padding: 0.28rem 0.8rem; border-radius: 2px; margin-bottom: 0.85rem;
+    }
+    .ibm-text { font-size: var(--fs-base); color: var(--muted); line-height: 1.65; }
+    .ibm-text strong { color: var(--text); }
+
+    /* ── CTA banner ──────────────────────────────────────────────────────────── */
+    .cta-section {
+      padding: var(--gap-lg) var(--pad-x);
+      text-align: center;
+    }
+    .cta-inner { max-width: 580px; margin: 0 auto; }
+    .cta-title {
+      font-family: 'Orbitron', monospace;
+      font-size: var(--fs-xl); font-weight: 700;
+      color: var(--text); margin-bottom: 0.7rem;
+    }
+    .cta-sub { font-size: var(--fs-base); color: var(--muted); margin-bottom: 2rem; line-height: 1.65; }
+
+    /* ── Footer ──────────────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 1.5rem var(--pad-x);
+      display: flex; align-items: flex-start; justify-content: space-between;
+      flex-wrap: wrap; gap: 0.75rem;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: var(--fs-xs); color: var(--muted); letter-spacing: 0.05em;
+    }
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--cyan); }
+    .footer-logo {
+      font-family: 'Orbitron', monospace;
+      font-size: 0.85rem; font-weight: 700;
+      color: var(--cyan); letter-spacing: 0.1em;
+    }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }
+  </style>
+</head>
+<body>
+
+<!-- ── Star field (JS-generated for density) ─────────────────────────────── -->
+<div id="stars" aria-hidden="true"></div>
+
+<div class="page">
+
+  <!-- NAV -->
+  <nav>
+    <a class="nav-logo" href="#">△ DELTA<span>-V</span></a>
+    <div class="nav-links">
+      <a class="nav-link" href="#pipeline">Pipeline</a>
+      <a class="nav-link" href="#principles">Principles</a>
+      <a class="nav-link" href="https://github.com/An-jinchie/delta-v" target="_blank" rel="noopener">GitHub</a>
+      <a class="nav-cta" href="https://delta-v-ksn33avrrgai9gbnidlstb.streamlit.app/" target="_blank" rel="noopener">Launch App ⊳</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <p class="eyebrow"><span>◎</span> &nbsp;LEO DEBRIS RISK INTELLIGENCE &nbsp;·&nbsp; PHYSICS-GROUNDED</p>
+    <h1 class="hero-title"><span class="delta">△</span>&nbsp;DELTA-V</h1>
+    <p class="hero-sub">Characterize &nbsp;·&nbsp; Map &nbsp;·&nbsp; Prioritize &amp; Act</p>
+    <div class="hero-problem">
+      <strong>The problem:</strong> Space debris between 1mm–10cm is too small for the U.S.
+      Space Surveillance Network to individually track, yet capable of mission-ending damage
+      at orbital velocities. <strong>Less than 1% of debris in this danger category is
+      currently tracked.</strong> Operators who most need this picture — university cubesat
+      teams, early-stage startups, independent researchers — are locked out of official
+      conjunction data. And a risk score alone isn't a decision: it doesn't say what it
+      would cost to act on, or which threat deserves attention first.
+    </div>
+    <div class="cta-row">
+      <a class="btn-primary" href="https://delta-v-ksn33avrrgai9gbnidlstb.streamlit.app/" target="_blank" rel="noopener">⊳ &nbsp;Launch the App</a>
+      <a class="btn-secondary" href="https://github.com/An-jinchie/delta-v" target="_blank" rel="noopener">View on GitHub</a>
+    </div>
+  </section>
+
+  <!-- STAT STRIP -->
+  <div class="stat-strip">
+    <div class="stat-inner">
+      <div class="stat">
+        <div class="stat-val">&lt;1%</div>
+        <div class="stat-label">of 1mm–10cm debris tracked</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">3</div>
+        <div class="stat-label">pipeline stages</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">142</div>
+        <div class="stat-label">passing unit tests</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">8</div>
+        <div class="stat-label">LEO altitude bands</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">0</div>
+        <div class="stat-label">AI-guessed numbers</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIPELINE -->
+  <section class="section" id="pipeline">
+    <div class="wrap">
+      <p class="section-label">◎ &nbsp;The Pipeline</p>
+      <h2 class="section-title">Three stages. Every number is earned.</h2>
+      <p class="section-body">
+        Each stage produces inspectable, deterministic output. Click any result in the app
+        to see the exact formula and constants behind it. No model ever guesses a risk score
+        or a delta-v figure.
+      </p>
+      <div class="pipeline">
+        <div class="p-card" style="--card-col:#00d4ff">
+          <p class="p-num">Stage 01</p>
+          <p class="p-icon">◎</p>
+          <p class="p-title">Characterize</p>
+          <p class="p-body">
+            Given a debris light curve (brightness over time as an object tumbles), estimate
+            <strong>size, shape, and rotation state</strong> using Fourier decomposition and
+            amplitude-based inversion. ML refines on top of those physical estimates —
+            <strong>math is always primary.</strong>
+          </p>
+          <span class="p-tag">Fourier · FFT · RandomForest</span>
+        </div>
+        <div class="p-card" style="--card-col:#7b5ea7">
+          <p class="p-num">Stage 02</p>
+          <p class="p-icon">⊞</p>
+          <p class="p-title">Map</p>
+          <p class="p-body">
+            Characterised detections combine with TLE-tracked object density into a
+            <strong>grid-based risk-density map</strong> across 8 LEO altitude bands,
+            weighted by recency and confidence. Updated with each detection batch.
+            <strong>Not a Bayesian filter</strong> — stated plainly throughout.
+          </p>
+          <span class="p-tag">SGP4 · CelesTrak · Recency-weighted</span>
+        </div>
+        <div class="p-card" style="--card-col:#f5a623">
+          <p class="p-num">Stage 03</p>
+          <p class="p-icon">△</p>
+          <p class="p-title">Prioritize &amp; Act</p>
+          <p class="p-body">
+            Each high-risk region is <strong>costed, not just ranked.</strong>
+            Hohmann transfer + plane-change delta-v per altitude band, weighed against
+            risk removed: <code style="color:#f5a623;font-family:'IBM Plex Mono',monospace">risk × severity ÷ Δv</code>.
+            Tiers: HIGH-PRIORITY / MONITOR / LOW. <strong>Exports CSV + JSON with
+            delta-v on every entry.</strong>
+          </p>
+          <span class="p-tag">Hohmann · Region-level only · CSV/JSON</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRINCIPLES -->
+  <section class="section" id="principles" style="padding-top:0">
+    <div class="wrap">
+      <p class="section-label">⊕ &nbsp;Design Principles</p>
+      <h2 class="section-title">Built to be used, not just viewed.</h2>
+      <div class="principles">
+        <div class="prin">
+          <p class="prin-icon">∿</p>
+          <p class="prin-title">Math is always deterministic</p>
+          <p class="prin-body">Every risk score, rotation rate, and delta-v figure is computed in code from physics constants. No model generates or guesses a number.</p>
+        </div>
+        <div class="prin">
+          <p class="prin-icon">⊕</p>
+          <p class="prin-title">Every output is inspectable</p>
+          <p class="prin-body">Click any result to see the exact formula, constants, and intermediate values behind it. Nothing is a black box.</p>
+        </div>
+        <div class="prin">
+          <p class="prin-icon">△</p>
+          <p class="prin-title">Region-level costing only</p>
+          <p class="prin-body">Delta-v is costed at the altitude-band level — not per object. Stage 1 gives size/shape/rotation, not a state vector. The math is honest about what the data supports.</p>
+        </div>
+        <div class="prin">
+          <p class="prin-icon">◉</p>
+          <p class="prin-title">IBM Granite translates, never generates</p>
+          <p class="prin-body">Granite receives computed numbers and writes plain-English analyst briefs. It never invents a value. Substantive fallback text runs without any credentials.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DATA TRANSPARENCY -->
+  <section class="section" style="padding-top:0">
+    <div class="wrap">
+      <p class="section-label">≡ &nbsp;Data Transparency</p>
+      <h2 class="section-title">Nothing overstated as live.</h2>
+      <div class="data-note">
+        <strong>Light-curve training data:</strong> physics-based synthetic (Lambertian + specular
+        reflection, Kaasalainen &amp; Torppa 2001). Labeled <code style="font-family:'IBM Plex Mono',monospace;font-size:0.85em"># SYNTHETIC DATA</code> throughout.
+        &nbsp;·&nbsp;
+        <strong>Validation:</strong> real Mini-MegaTORTORA telescope observations (8 passes). All
+        8 publicly accessible objects are large tracked satellites — confirming the gap: the 1–10 cm
+        target population is untracked and unarchived by design.
+        &nbsp;·&nbsp;
+        <strong>TLE data:</strong> CelesTrak public GP endpoint, no registration.
+        Auto-falls back to a 426-object physics-valid synthetic snapshot when the network is unreachable.
+        &nbsp;·&nbsp;
+        <strong>Accuracy (synthetic held-out, n=400):</strong> size 83.8% · shape 95.2%.
+        Real light curves are noisier — accuracy will degrade. Stated plainly in the app.
+      </div>
+    </div>
+  </section>
+
+  <!-- IBM STRIP -->
+  <div class="ibm-strip">
+    <div class="ibm-inner">
+      <span class="ibm-badge">IBM AI Builders Challenge</span>
+      <p class="ibm-text">
+        Built with <strong>IBM Granite (ibm/granite-3-3-8b-instruct)</strong> via watsonx.ai.
+        Granite is used in exactly three places — translating computed results into
+        plain-language analyst briefs for each pipeline stage. It never produces or guesses
+        numerical values. The app runs fully without credentials; Granite upgrades the prose,
+        not the math.
+      </p>
+    </div>
+  </div>
+
+  <!-- CTA BANNER -->
+  <section class="cta-section">
+    <div class="cta-inner">
+      <h2 class="cta-title">Ready to run the pipeline?</h2>
+      <p class="cta-sub">
+        No login. No registration. No API keys required.
+        The full three-stage pipeline runs in your browser — or hook up your own light curves
+        and TLE feed.
+      </p>
+      <div class="cta-row">
+        <a class="btn-primary" href="https://delta-v-ksn33avrrgai9gbnidlstb.streamlit.app/" target="_blank" rel="noopener">⊳ &nbsp;Launch the App</a>
+        <a class="btn-secondary" href="https://github.com/An-jinchie/delta-v" target="_blank" rel="noopener">View on GitHub</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <span class="footer-logo">△ DELTA-V</span>
+    <span class="footer-links">
+      <a href="https://delta-v-ksn33avrrgai9gbnidlstb.streamlit.app/" target="_blank" rel="noopener">Live App</a>
+      <a href="https://github.com/An-jinchie/delta-v" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://celestrak.org" target="_blank" rel="noopener">CelesTrak</a>
+      <a href="http://mmt9.ru" target="_blank" rel="noopener">Mini-MegaTORTORA</a>
+    </span>
+    <span>Physics-grounded LEO debris risk intelligence</span>
+  </footer>
+
+</div><!-- .page -->
+
+<script>
+  // Procedural star field — runs once, creates 200 stars of varying size/depth
+  (function () {
+    var container = document.getElementById('stars');
+    for (var i = 0; i < 200; i++) {
+      var s = document.createElement('div');
+      s.className = 'star';
+      var size    = Math.random() * 1.8 + 0.3;
+      var opacity = Math.random() * 0.5 + 0.1;
+      var dur     = (Math.random() * 4 + 2).toFixed(1) + 's';
+      var delay   = (Math.random() * 6).toFixed(1) + 's';
+      s.style.cssText =
+        'width:'  + size + 'px;' +
+        'height:' + size + 'px;' +
+        'left:'   + (Math.random() * 100) + '%;' +
+        'top:'    + (Math.random() * 100) + '%;' +
+        '--o:'    + opacity + ';' +
+        '--d:'    + dur + ';' +
+        'animation-delay:' + delay + ';';
+      container.appendChild(s);
+    }
+  })();
+</script>
+
+</body>
+</html>

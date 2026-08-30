@@ -102,49 +102,39 @@ st.markdown("""
 st.divider()
 
 # ── Pipeline stage cards ───────────────────────────────────────────────────────
-col1, arrow1, col2, arrow2, col3 = st.columns([10, 1, 10, 1, 10])
-
-with col1:
-    st.markdown("""
-<div class="stage-card">
-  <div class="stage-num">Stage 01</div>
-  <div class="stage-title">◎ Characterize</div>
-  <div class="stage-body">
-    Given a debris light curve, estimate <strong>size, shape, and rotation state</strong>
-    using Fourier decomposition and amplitude-based inversion.
-    ML refines on top of those physical estimates — math is always primary.
+# Rendered as a single HTML block so the arrow columns can use flexbox
+# vertical-centering — st.columns arrows with fixed margin-top drift on
+# different screen sizes and card heights.
+st.markdown("""
+<div class="pipeline-row">
+  <div class="stage-card">
+    <div class="stage-num">Stage 01</div>
+    <div class="stage-title">◎ Characterize</div>
+    <div class="stage-body">
+      Given a debris light curve, estimate <strong>size, shape, and rotation state</strong>
+      using Fourier decomposition and amplitude-based inversion.
+      ML refines on top of those physical estimates — math is always primary.
+    </div>
   </div>
-</div>
-""", unsafe_allow_html=True)
-
-with arrow1:
-    st.markdown("<div class='pipe-arrow' style='margin-top:3rem'>⟶</div>", unsafe_allow_html=True)
-
-with col2:
-    st.markdown("""
-<div class="stage-card">
-  <div class="stage-num">Stage 02</div>
-  <div class="stage-title">⊞ Map</div>
-  <div class="stage-body">
-    Characterised detections feed a <strong>grid-based risk-density map</strong>
-    across LEO altitude bands, weighted by recency and confidence.
-    Updated with each new detection batch. Not a Bayesian filter.
+  <div class="pipe-arrow">⟶</div>
+  <div class="stage-card">
+    <div class="stage-num">Stage 02</div>
+    <div class="stage-title">⊞ Map</div>
+    <div class="stage-body">
+      Characterised detections feed a <strong>grid-based risk-density map</strong>
+      across LEO altitude bands, weighted by recency and confidence.
+      Updated with each new detection batch. Not a Bayesian filter.
+    </div>
   </div>
-</div>
-""", unsafe_allow_html=True)
-
-with arrow2:
-    st.markdown("<div class='pipe-arrow' style='margin-top:3rem'>⟶</div>", unsafe_allow_html=True)
-
-with col3:
-    st.markdown("""
-<div class="stage-card">
-  <div class="stage-num">Stage 03</div>
-  <div class="stage-title">△ Prioritize</div>
-  <div class="stage-body">
-    Each high-risk region is <strong>costed using Hohmann transfer delta-v</strong>
-    and ranked by <code>risk × severity ÷ delta-v</code>.
-    Outputs tiers with delta-v on every entry. Exports CSV/JSON.
+  <div class="pipe-arrow">⟶</div>
+  <div class="stage-card">
+    <div class="stage-num">Stage 03</div>
+    <div class="stage-title">△ Prioritize</div>
+    <div class="stage-body">
+      Each high-risk region is <strong>costed using Hohmann transfer delta-v</strong>
+      and ranked by <code>risk × severity ÷ delta-v</code>.
+      Outputs tiers with delta-v on every entry. Exports CSV/JSON.
+    </div>
   </div>
 </div>
 """, unsafe_allow_html=True)

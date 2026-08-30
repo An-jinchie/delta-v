@@ -503,13 +503,41 @@ blockquote {
   line-height: 1.65;
 }
 
-/* ── Pipeline arrow ──────────────────────────────────────────────────────── */
+/* ── Pipeline row — flexbox so arrows always vertically centre on cards ─── */
+.pipeline-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;   /* cards grow to same height */
+  gap: 0;
+  width: 100%;
+}
+
+.pipeline-row .stage-card {
+  flex: 1 1 0;
+  min-width: 0;           /* prevent flex blowout */
+}
+
+/* ── Pipeline arrow — flex child, centres itself between equal-height cards */
 .pipe-arrow {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.6rem;
   font-size: 1.6rem;
   color: var(--border-hi);
-  text-align: center;
-  margin-top: 2.5rem;
   font-family: var(--font-ui);
+  /* Arrows disappear on narrow screens — cards stack vertically instead */
+}
+
+/* Narrow screens: stack cards, hide arrows */
+@media (max-width: 700px) {
+  .pipeline-row {
+    flex-direction: column;
+  }
+  .pipe-arrow {
+    display: none;
+  }
 }
 
 /* ── Orbital ring decoration on page titles ─────────────────────────────── */

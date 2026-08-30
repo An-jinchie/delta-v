@@ -163,6 +163,9 @@ _BG_VIDEOS = [
     "https://images-assets.nasa.gov/video/iss064e031174/iss064e031174~orig.mp4",
 ]
 
+# Unique element ID suffix so multiple inject_starfield() calls don't clash
+_ELEM_ID = "dvbg"
+
 
 def inject_starfield() -> None:
     """
@@ -199,7 +202,6 @@ def inject_starfield() -> None:
     z-index: 0;
     pointer-events: none;
     overflow: hidden;
-    /* Fallback gradient shown while video loads */
     background: radial-gradient(ellipse at 50% 30%, #0d1530 0%, #070b14 55%, #030507 100%);
   }}
 
@@ -210,11 +212,10 @@ def inject_starfield() -> None:
     width: 100%;
     height: 100%;
     object-fit: cover;
-    /* Dark overlay: video at 35% opacity so stars/content pop through */
     opacity: 0.35;
     transition: opacity 0.6s ease;
   }}
-  #dv-video.paused {{ opacity: 0.15; }}
+  #dv-video.dv-paused {{ opacity: 0.0; }}
 
   /* ── Star field SVG on top of video ──────────────────────────────────── */
   #dv-stars {{
@@ -224,7 +225,7 @@ def inject_starfield() -> None:
     height: 100%;
   }}
 
-  /* ── Dark video overlay (separate from video opacity) ────────────────── */
+  /* ── Dark video overlay ──────────────────────────────────────────────── */
   #dv-overlay {{
     position: absolute;
     inset: 0;
@@ -247,7 +248,7 @@ def inject_starfield() -> None:
   #dv-playpause {{
     position: fixed;
     bottom: 1.1rem;
-    right: 5rem;          /* clear of Streamlit's manage-app button */
+    right: 5rem;
     z-index: 9999;
     pointer-events: all;
     cursor: pointer;
@@ -291,8 +292,7 @@ def inject_starfield() -> None:
 
 <div id="dv-bg">
   <video id="dv-video" autoplay loop muted playsinline
-         src="{video_url}"
-         onerror="this.style.display='none'">
+         src="{video_url}">
   </video>
   <div id="dv-overlay"></div>
   <svg id="dv-stars" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
@@ -303,49 +303,62 @@ def inject_starfield() -> None:
   {meteors_html}
 </div>
 
-<!-- Play / pause toggle button — bottom right, like NASA Eyes -->
-<div id="dv-playpause" title="Toggle background video" onclick="
-  var v = document.getElementById('dv-video');
-  var b = document.getElementById('dv-playpause');
-  if (v) {{
-    if (v.paused) {{
-      v.play();
-      v.classList.remove('paused');
-      b.textContent = '⏸';
-    }} else {{
-      v.pause();
-      v.classList.add('paused');
-      b.textContent = '▶';
-    }}
-  }}
-">⏸</div>
+<!-- Play / pause toggle — onclick is wired in the script below, not inline,
+     because Streamlit's HTML sanitizer strips inline event handlers. -->
+<div id="dv-playpause" title="Toggle background video">⏸</div>
 
 <script>
 (function() {{
-  // Twinkle animation on ~30% of stars
-  const svgStars = document.querySelectorAll('#dv-stars circle');
-  svgStars.forEach(function(s, i) {{
-    if (i % 3 === 0) {{
-      s.classList.add('twinkle');
-      const dur   = (2.5 + Math.random() * 3).toFixed(1);
-      const delay = (Math.random() * 4).toFixed(1);
-      const m = s.getAttribute('fill').match(/[\d.]+\)$/);
-      const baseOp = m ? parseFloat(m[0]) : 0.5;
-      s.style.setProperty('--base-op', baseOp);
-      s.style.setProperty('--twk-dur', dur + 's');
-      s.style.animationDelay = delay + 's';
+  // Wire the toggle button — must be done in a script block, not inline onclick,
+  // because Streamlit's markdown sanitizer removes all inline event handlers.
+  function dvInit() {{
+    var btn = document.getElementById('dv-playpause');
+    var vid = document.getElementById('dv-video');
+    if (!btn || !vid) {{
+      // DOM not ready yet — retry in 200 ms
+      setTimeout(dvInit, 200);
+      return;
     }}
-  }});
 
-  // If video fails to load (e.g. network restricted on Streamlit Cloud),
-  // hide the broken element silently — the star field is the fallback.
-  var vid = document.getElementById('dv-video');
-  if (vid) {{
+    // Hide toggle if video can't load (network-restricted environments)
     vid.addEventListener('error', function() {{
       vid.style.display = 'none';
-      document.getElementById('dv-playpause').style.display = 'none';
+      btn.style.display = 'none';
+    }});
+
+    // Some browsers need an explicit play() call after programmatic autoplay
+    vid.play().catch(function() {{ /* autoplay blocked — video stays hidden */ }});
+
+    btn.addEventListener('click', function() {{
+      if (vid.paused) {{
+        vid.play();
+        vid.classList.remove('dv-paused');
+        btn.textContent = '⏸';
+      }} else {{
+        vid.pause();
+        vid.classList.add('dv-paused');
+        btn.textContent = '▶';
+      }}
+    }});
+
+    // Twinkle animation on ~30% of stars
+    var svgStars = document.querySelectorAll('#dv-stars circle');
+    svgStars.forEach(function(s, i) {{
+      if (i % 3 === 0) {{
+        s.classList.add('twinkle');
+        var dur   = (2.5 + Math.random() * 3).toFixed(1);
+        var delay = (Math.random() * 4).toFixed(1);
+        var m = s.getAttribute('fill').match(/[\d.]+\)$/);
+        var baseOp = m ? parseFloat(m[0]) : 0.5;
+        s.style.setProperty('--base-op', baseOp);
+        s.style.setProperty('--twk-dur', dur + 's');
+        s.style.animationDelay = delay + 's';
+      }}
     }});
   }}
+
+  // Start immediately; retry loop handles late DOM injection
+  dvInit();
 }})();
 </script>
 """
