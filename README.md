@@ -124,9 +124,14 @@ The classifier predicts `size_class` (small/medium/large) and `shape` (flat_plat
 
 ## Selected Challenge Theme
 
-**Sustainability / Climate & Environment** — specifically the space environment.
+**August Challenge — Space Tech & AI Innovation**
 
-Delta-V addresses the growing LEO debris problem from the perspective of operators who currently have no accessible, actionable risk intelligence. The app provides open, free, no-registration-required debris risk assessment using public data (CelesTrak, Mini-MegaTORTORA), making this capability accessible to university cubesat teams and independent researchers for the first time.
+Delta-V was built specifically for this theme: it applies AI and physics-grounded computation to a real, unsolved space operations problem — the tracking gap for small LEO debris (1 mm–10 cm). The project demonstrates the intersection of:
+
+- **Space technology** — orbital mechanics (Hohmann transfers, SGP4 propagation), light-curve inversion, TLE-based density mapping across 8 LEO altitude bands
+- **AI innovation** — IBM Granite for plain-language translation of computed results; RandomForest ML as a secondary refinement layer on top of deterministic physics; the constraint architecture that ensures AI never produces numbers, only explains them
+
+The result is an open, free, no-registration tool that gives university cubesat teams, independent researchers, and early-stage startups the kind of risk intelligence that currently requires being a registered satellite owner to access.
 
 ---
 
@@ -211,7 +216,7 @@ The inversion pipeline behaves correctly on these objects:
 pip install -r requirements.txt
 
 # 2. (Optional) Train the ML model — the app auto-trains a lighter model on first run if missing
-python train.py
+python scripts/train.py
 
 # 3. Launch
 streamlit run app.py
@@ -253,7 +258,7 @@ python -m pytest tests/ -v
 
 ```bash
 # Run MMT validation (requires network access to mmt9.ru or local data in data/validation/)
-python validate_mmtortora.py
+python scripts/validate_mmtortora.py
 
 # End-to-end smoke test
 python scripts/smoke_test_pipeline.py
@@ -265,12 +270,15 @@ python scripts/smoke_test_pipeline.py
 
 ```
 delta-v/
-├── app.py                          ← Streamlit entry + home dashboard
-├── pages/
-│   ├── 01_characterize.py          ← Stage 1 UI (light curve → size/shape/rotation)
-│   ├── 02_map.py                   ← Stage 2 UI (risk-density map + 3D orbital view)
-│   └── 03_prioritize.py            ← Stage 3 UI (delta-v costed tiers + export)
-├── pipeline/
+├── app.py                          ← Streamlit entry + home dashboard  [root: required by Streamlit]
+├── config.py                       ← get_config(), granite_available() [root: imported by all modules]
+│
+├── pages/                          ← Streamlit multi-page UI
+│   ├── 01_characterize.py          ← Stage 1 — light curve → size/shape/rotation
+│   ├── 02_map.py                   ← Stage 2 — risk-density map + 3D orbital view
+│   └── 03_prioritize.py            ← Stage 3 — delta-v costed tiers + export
+│
+├── pipeline/                       ← Core physics pipeline (no Streamlit dependency)
 │   ├── characterize/
 │   │   ├── generator.py            ← Physics-based synthetic light-curve generator
 │   │   ├── inversion.py            ← PRIMARY: Fourier decomp + amplitude estimation
@@ -282,27 +290,37 @@ delta-v/
 │   │   └── risk_map.py             ← Grid-based accumulator (NOT Bayesian)
 │   └── prioritize/
 │       └── scorer.py               ← Hohmann delta-v + severity + tiers + export
+│
 ├── ai/
 │   └── granite.py                  ← Granite client + 3 prompt functions + fallback
-├── ui/
+│
+├── ui/                             ← Streamlit UI helpers
 │   ├── theme.py                    ← Palette, fonts, CSS, Plotly layout constants
 │   ├── starfield.py                ← Animated star field + NASA ISS video background
 │   └── orbital_view.py             ← Live 3D SGP4-propagated orbital distribution viz
+│
+├── tests/                          ← 142 unit tests across 7 files
+│
+├── scripts/                        ← Standalone runnable scripts
+│   ├── train.py                    ← Generate 2000 curves → invert → train → save model
+│   ├── validate_mmtortora.py       ← Validate inversion against real MMT light curves
+│   ├── generate_tle_fallback.py    ← Regenerate TLE snapshot
+│   └── smoke_test_pipeline.py      ← End-to-end smoke test
+│
 ├── data/
 │   ├── tle_snapshot_fallback.csv   ← 426 synthetic TLEs, all LEO bands, fresh epoch
 │   ├── models/                     ← Trained RandomForest (auto-trains on first run)
-│   └── validation/                 ← MMT validation output
-├── landing/
-│   ├── index.html                  ← Static landing page (deploy to Vercel separately)
-│   └── vercel.json                 ← Vercel routing config for landing page
-├── tests/                          ← 142 unit tests, 7 files
-├── scripts/
-│   ├── generate_tle_fallback.py    ← Regenerate TLE snapshot
-│   └── smoke_test_pipeline.py      ← End-to-end smoke test
-├── train.py                        ← Generate 2000 curves → invert → train → save model
-├── validate_mmtortora.py           ← Validate inversion against real MMT light curves
-├── config.py                       ← get_config(), granite_available()
+│   └── validation/                 ← MMT validation output + real light curves
+│
+├── landing/                        ← Static landing page (optional — deploy to Vercel)
+│   ├── index.html
+│   └── vercel.json
+│
+├── docs/
+│   └── delta-v-plan.md             ← Original build plan (reference)
+│
 ├── requirements.txt
+├── requirements-dev.txt
 ├── .env.example
 └── .streamlit/config.toml          ← Streamlit dark theme + deploy config
 ```
